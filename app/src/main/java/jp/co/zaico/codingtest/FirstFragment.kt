@@ -6,6 +6,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import android.widget.Toast
 import androidx.core.os.bundleOf
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.DiffUtil
@@ -30,11 +31,11 @@ class FirstFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        val _viewModel = FirstViewModel(context!!)
+        val _viewModel = FirstViewModel(requireContext())
 
-        val _layoutManager = LinearLayoutManager(context!!)
+        val _layoutManager = LinearLayoutManager(requireContext())
         val _dividerItemDecoration = DividerItemDecoration(
-            context!!,
+            requireContext(),
             _layoutManager.orientation
         )
         val _adapter = MyAdapter(object : MyAdapter.OnItemClickListener {
@@ -50,10 +51,18 @@ class FirstFragment : Fragment() {
             it.adapter = _adapter
         }
 
-        _viewModel.getInventories().apply {
-            _adapter.submitList(this)
-        }
+        _viewModel.getInventories()
+            .onSuccess { _adapter.submitList(it) }
+            .onFailure { showError(it) }
 
+    }
+
+    private fun showError(error: Throwable) {
+        Toast.makeText(
+            requireContext(),
+            getString(R.string.error_load_inventories, error.message),
+            Toast.LENGTH_LONG
+        ).show()
     }
 
 }

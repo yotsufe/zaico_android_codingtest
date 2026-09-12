@@ -5,6 +5,7 @@ import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
 import jp.co.zaico.codingtest.databinding.FragmentSecondBinding
 
 class SecondFragment : Fragment() {
@@ -23,12 +24,13 @@ class SecondFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        val inventoryId = arguments!!.getString("inventoryId")!!.toInt()
+        val inventoryId = requireArguments().getString("inventoryId")!!.toInt()
 
-        val _viewModel = SecondViewModel(context!!)
+        val _viewModel = SecondViewModel(requireContext())
 
-        val inventory = _viewModel.getInventory(inventoryId)
-        initView(inventory)
+        _viewModel.getInventory(inventoryId)
+            .onSuccess { initView(it) }
+            .onFailure { showError(it) }
 
     }
 
@@ -36,6 +38,14 @@ class SecondFragment : Fragment() {
         _binding!!.textViewId.text = inventory.id.toString()
         _binding!!.textViewTitle.text = inventory.title
         _binding!!.textViewQuantity.text = inventory.quantity
+    }
+
+    private fun showError(error: Throwable) {
+        Toast.makeText(
+            requireContext(),
+            getString(R.string.error_load_inventory, error.message),
+            Toast.LENGTH_LONG
+        ).show()
     }
 
 }
