@@ -17,3 +17,5 @@
 .externalNativeBuild
 .cxx
 local.properties
+/.claude/hooks/secret-patterns.txt
+/.claude/settings.local.json
