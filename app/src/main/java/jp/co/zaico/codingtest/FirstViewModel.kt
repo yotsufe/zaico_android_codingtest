@@ -11,14 +11,16 @@ class FirstViewModel(
     val context: Context
 ): ViewModel() {
 
+    private val endpoint = ZaicoApiEndpoint.from(context)
+
     // データ取得（失敗した場合は Result.failure を返し、呼び出し側でエラー表示する）
     fun getInventories(): Result<List<Inventory>> = runBlocking(Dispatchers.IO) {
         runCatching {
             ZaicoApi.newClient().use { client ->
-                val companyId = ZaicoApi.companyId(context, client)
+                val companyId = ZaicoApi.companyId(client, endpoint)
                 val body = ZaicoApi.getText(
-                    context,
                     client,
+                    endpoint,
                     "/api/v2/orgs/companies/$companyId/inventories.json"
                 )
 

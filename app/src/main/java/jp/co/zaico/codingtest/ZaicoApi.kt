@@ -1,9 +1,9 @@
 package jp.co.zaico.codingtest
 
-import android.content.Context
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.android.Android
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.client.request.HttpRequestBuilder
 import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.statement.HttpResponse
@@ -20,7 +20,14 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 
 /** API がエラーステータスを返したときに投げる例外。 */
-class ApiException(message: String) : Exception(message)
+open class ApiException(message: String) : Exception(message)
+
+/**
+ * API トークンが設定されていないときに投げる例外。
+ *
+ * 表示する文言は文字列リソースを持つ UI 層が [messageOf] で決める。
+ */
+class ApiTokenMissingException : ApiException("API token is not configured")
 
 /**
  * zaico 公開 API v2 へのアクセスをまとめたヘルパー。
@@ -42,15 +49,29 @@ object ZaicoApi {
     }
 
     /** 認証ヘッダ付きで GET する。エラーステータスなら ApiException を投げる。 */
-    suspend fun getText(context: Context, client: HttpClient, path: String): String {
-        val token = BuildConfig.ZAICO_API_TOKEN
-        if (token.isEmpty()) {
-            throw ApiException(context.getString(R.string.error_api_token_missing))
+    suspend fun getText(
+        client: HttpClient,
+        endpoint: ZaicoApiEndpoint,
+        path: String,
+    ): String = request(endpoint, path) { url ->
+        client.get(url) { authorize(endpoint) }
+    }
+
+    /**
+     * トークンの有無を確かめてから [send] を実行し、レスポンス本文を返す。
+     *
+     * トークンが空のときはリクエストを送らない。エラーステータスなら ApiException を投げる。
+     */
+    private suspend fun request(
+        endpoint: ZaicoApiEndpoint,
+        path: String,
+        send: suspend (String) -> HttpResponse,
+    ): String {
+        if (!endpoint.hasToken) {
+            throw ApiTokenMissingException()
         }
 
-        val response: HttpResponse = client.get(context.getString(R.string.api_endpoint) + path) {
-            header("Authorization", "Bearer $token")
-        }
+        val response = send(endpoint.urlOf(path))
         val body = response.bodyAsText()
         if (!response.status.isSuccess()) {
             throw ApiException(errorMessageOf(body) ?: response.status.toString())
@@ -58,18 +79,27 @@ object ZaicoApi {
         return body
     }
 
-    /** 在庫エンドポイントのパスに必要な company_id を返す（初回のみ API を呼ぶ）。 */
-    suspend fun companyId(context: Context, client: HttpClient): Int {
-        cachedCompanyId?.let { return it }
+    private fun HttpRequestBuilder.authorize(endpoint: ZaicoApiEndpoint) {
+        header("Authorization", endpoint.authorizationHeader)
+    }
 
-        val body = getText(context, client, "/api/v2/orgs/companies.json")
+    /** 在庫エンドポイントのパスに必要な company_id を返す（初回のみ API を呼ぶ）。 */
+    suspend fun companyId(client: HttpClient, endpoint: ZaicoApiEndpoint): Int =
+        cachedCompanyId ?: fetchCompanyId(client, endpoint).also { cachedCompanyId = it }
+
+    /**
+     * キャッシュを通さずに company_id を取得する。
+     *
+     * プロセス全体で共有されるキャッシュはテスト間で漏れるため、テストはこちらを検証する。
+     */
+    internal suspend fun fetchCompanyId(client: HttpClient, endpoint: ZaicoApiEndpoint): Int {
+        val body = getText(client, endpoint, "/api/v2/orgs/companies.json")
         val companies = dataOf(body).jsonArray
         if (companies.isEmpty()) {
             throw ApiException("利用可能な会社が見つかりませんでした")
         }
 
         return companies.first().jsonObject["id"]!!.jsonPrimitive.int
-            .also { cachedCompanyId = it }
     }
 
     /** v2 のレスポンスは {"data": ...} で包まれているので、その中身を取り出す。 */
@@ -83,9 +113,17 @@ object ZaicoApi {
         quantity = json["quantity"]?.jsonPrimitive?.contentOrNull.orEmpty()
     )
 
-    /** エラーレスポンス {"message": "..."} からメッセージを取り出す。取り出せなければ null。 */
+    /**
+     * エラーレスポンスから表示できるメッセージを取り出す。取り出せなければ null。
+     *
+     * v2 のエラーは RFC 7807 Problem Details 形式で、
+     * {"title": "認証エラー", "status": 401, "detail": "認証トークンが無効または未指定です。"}
+     * のように返る。detail のほうが具体的なので優先し、無ければ title を使う。
+     */
     private fun errorMessageOf(body: String): String? = runCatching {
-        json.parseToJsonElement(body).jsonObject["message"]?.jsonPrimitive?.contentOrNull
+        val error = json.parseToJsonElement(body).jsonObject
+        error["detail"]?.jsonPrimitive?.contentOrNull
+            ?: error["title"]?.jsonPrimitive?.contentOrNull
     }.getOrNull()
 
 }
