@@ -41,6 +41,19 @@ AddActivity ──→ AddViewModel ──→ InventoryRepository (interface)
 | `Context.messageOf(Throwable)` で文言に変換する | 例外から表示文言への変換を UI 側の 1 箇所に集約する |
 | `companyId` とは別に `fetchCompanyId` を持つ | `companyId` のキャッシュはプロセス全体で共有されテスト間で漏れるため、キャッシュを通さない経路をテスト対象にする |
 
+### 各層の責務
+
+**UI 層（Activity / Fragment）にビジネスロジックを置かない。**
+バリデーション、通信、状態遷移、エラーの分類は、すべて ViewModel 以下が持つ。
+UI がするのは、状態を受け取って描画することと、入力をそのまま ViewModel に渡すことだけ。
+
+| 層 | 持つもの | 持たないもの |
+|---|---|---|
+| Activity / Fragment | 状態の購読と描画、入力の受け渡し | 判断、通信、状態 |
+| ViewModel | 画面の状態、バリデーション、Repository の呼び出し | Android のリソース、View への参照 |
+| Repository | API の呼び出し、レスポンスからモデルへの変換 | 画面の都合 |
+| `ZaicoApi` | HTTP の送受信、ステータス判定 | `Context`、表示文言 |
+
 ### 依存の受け取り方
 
 - **依存はコンストラクタで受け取る。** ViewModel は `InventoryRepository` を、
@@ -60,11 +73,12 @@ AddActivity ──→ AddViewModel ──→ InventoryRepository (interface)
 | `ZaicoInventoryRepository` | MockEngine | 作成リクエストの形（メソッド・パス・ボディ）、異常系の例外 |
 | `AddViewModel` | 手書き Fake | バリデーション、状態遷移 |
 
-**Activity / Fragment はテストしない。** Robolectric や Espresso は依存が大きく増える割に
-この規模で得るものが小さい。代わりに UI 層へロジックを置かず、判断を ViewModel 以下に寄せる。
+**Activity / Fragment はテストしない。** 上記の責務分離により、UI 層にはテスト対象となる
+ロジックが存在しないため。
 
-これは「テストを書かない言い訳」ではなく、**テストしない層を太らせないための制約**として運用する。
-UI にロジックが溜まり始めたら、ViewModel に移すべきサインとみなす。
+残るのは「どの状態をどのビューに反映するか」という描画の対応付けだけで、
+それを検証するために Robolectric や Espresso を導入するのは、
+この規模では得るものに対して依存が大きすぎる。
 
 テストに使う依存は次の 2 つ。いずれも `testImplementation` なので APK には入らない。
 
