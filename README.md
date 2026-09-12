@@ -43,6 +43,32 @@ zaico.apiToken=＜あなたの zaico API トークン＞
 
 本アプリは公開 API v2 を使用しています。
 
+在庫データ作成は [公開 API v2 ドキュメント](https://public-docs.zaico.co.jp/public-api-v2-doc/openapi.html)
+の `Inventories_create` に従い、以下を使用しています。
+
+```
+POST /api/v2/orgs/companies/{company_id}/inventories.json
+Content-Type: application/json
+
+{"title": "..."}
+```
+
+`title` のみが必須です（`quantity` / `place` / `unit` などは任意）。
+`company_id`（拠点 ID）はパスに必要なため、`/api/v2/orgs/companies.json` から取得しています。
+
+> ドキュメント上の成功ステータスは `201` ですが、実機では `200` が返りました。
+> 本実装は 2xx を成功として扱い、レスポンス本文の形式に依存しないため、どちらでも動作します。
+
+### テストの実行
+
+```bash
+./gradlew :app:testDebugUnitTest
+```
+
+JVM 上で完結します（実機・API トークン不要）。通信は Ktor の `MockEngine` で差し替えています。
+
+設計方針は [docs/design.md](docs/design.md) を参照してください。
+
 ### 動作確認済の開発環境
 
 - IDE：Android Studio Ladybug Feature Drop | 2024.2.2 Patch 1
