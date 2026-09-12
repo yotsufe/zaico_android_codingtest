@@ -334,8 +334,10 @@ git tag -d wip/final
 
 ```
 Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>
-Claude-Session: <セッション URL>
 ```
+
+**セッション URL（`Claude-Session:`）は付けない。** 本人以外が開けない内部リンクであり、
+提出物の履歴に残す価値がない。
 
 ## 7. push と PR 作成
 
@@ -442,9 +444,9 @@ git diff --stat main..HEAD
 
 ```
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
-
-<セッション URL>
 ```
+
+**セッション URL は付けない。** 本人以外が開けない内部リンクであり、レビュアーにとってノイズになる。
 
 ---
 
