@@ -6,8 +6,12 @@ import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.HttpRequestBuilder
 import io.ktor.client.request.get
 import io.ktor.client.request.header
+import io.ktor.client.request.post
+import io.ktor.client.request.setBody
 import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsText
+import io.ktor.http.ContentType
+import io.ktor.http.contentType
 import io.ktor.http.isSuccess
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
@@ -55,6 +59,20 @@ object ZaicoApi {
         path: String,
     ): String = request(endpoint, path) { url ->
         client.get(url) { authorize(endpoint) }
+    }
+
+    /** 認証ヘッダ付きで JSON を POST する。エラーステータスなら ApiException を投げる。 */
+    suspend fun postText(
+        client: HttpClient,
+        endpoint: ZaicoApiEndpoint,
+        path: String,
+        jsonBody: String,
+    ): String = request(endpoint, path) { url ->
+        client.post(url) {
+            authorize(endpoint)
+            contentType(ContentType.Application.Json)
+            setBody(jsonBody)
+        }
     }
 
     /**
