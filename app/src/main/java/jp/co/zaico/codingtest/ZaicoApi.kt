@@ -43,7 +43,10 @@ object ZaicoApi {
 
     /** 認証ヘッダ付きで GET する。エラーステータスなら ApiException を投げる。 */
     suspend fun getText(context: Context, client: HttpClient, path: String): String {
-        val token = context.getString(R.string.api_token)
+        val token = BuildConfig.ZAICO_API_TOKEN
+        if (token.isEmpty()) {
+            throw ApiException(context.getString(R.string.error_api_token_missing))
+        }
 
         val response: HttpResponse = client.get(context.getString(R.string.api_endpoint) + path) {
             header("Authorization", "Bearer $token")

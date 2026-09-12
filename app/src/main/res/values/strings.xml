@@ -4,4 +4,5 @@
     <string name="second_fragment_label">在庫詳細</string>
     <string name="error_load_inventories">在庫一覧を取得できませんでした: %1$s</string>
     <string name="error_load_inventory">在庫詳細を取得できませんでした: %1$s</string>
+    <string name="error_api_token_missing">API トークンが設定されていません。local.properties に zaico.apiToken を設定してください。</string>
 </resources>
