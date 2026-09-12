@@ -1,5 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="api_endpoint">https://web.zaico.co.jp/</string>
-    <string name="api_token">Please set up a token</string>
 </resources>

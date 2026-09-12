@@ -25,6 +25,24 @@ zaicoのAPIを利用するためzaicoのアカウントを登録し、APIトー�
 
 [在庫登録のドキュメント](https://support.zaico.co.jp/hc/ja/articles/9425011130265--WEB-%E5%9C%A8%E5%BA%AB%E3%83%87%E3%83%BC%E3%82%BF%E3%82%92%E7%99%BB%E9%8C%B2%E3%81%99%E3%82%8B)
 
+### セットアップ
+
+API トークンはリポジトリに含めないため、`local.properties` で管理しています。
+クローン後、`local.properties` に以下を追記してください（このファイルは `.gitignore` 対象です）。
+
+```properties
+zaico.apiToken=＜あなたの zaico API トークン＞
+```
+
+トークンは Web 版 zaico の ［ユーザー名］＞［ユーザー情報］ から取得できます。
+事前に ［設定］＞［利用機能設定］ で「API機能」を有効にしておいてください。
+
+未設定のままビルドすると、実行時に「API トークンが設定されていません」と表示されます。
+
+### 使用している API のバージョンについて
+
+本アプリは公開 API v2 を使用しています。
+
 ### 動作確認済の開発環境
 
 - IDE：Android Studio Ladybug Feature Drop | 2024.2.2 Patch 1

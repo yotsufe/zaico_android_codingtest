@@ -1,8 +1,19 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     kotlin("plugin.serialization") version "1.5.31"
 }
+
+// local.properties はバージョン管理対象外。API トークンなどの秘密情報はここから読む。
+private val localProperties = Properties().apply {
+    val file = rootProject.file("local.properties")
+    if (file.exists()) file.inputStream().use { load(it) }
+}
+
+fun localProperty(key: String, default: String = ""): String =
+    localProperties.getProperty(key, default)
 
 android {
     namespace = "jp.co.zaico.codingtest"
@@ -16,6 +27,12 @@ android {
         versionName = "1.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        buildConfigField(
+            "String",
+            "ZAICO_API_TOKEN",
+            "\"${localProperty("zaico.apiToken")}\""
+        )
     }
 
     buildTypes {
@@ -36,6 +53,7 @@ android {
     }
     buildFeatures {
         viewBinding = true
+        buildConfig = true
     }
 }
 
