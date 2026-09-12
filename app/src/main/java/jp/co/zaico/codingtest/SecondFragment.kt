@@ -43,7 +43,7 @@ class SecondFragment : Fragment() {
     private fun showError(error: Throwable) {
         Toast.makeText(
             requireContext(),
-            getString(R.string.error_load_inventory, error.message),
+            getString(R.string.error_load_inventory, requireContext().messageOf(error)),
             Toast.LENGTH_LONG
         ).show()
     }

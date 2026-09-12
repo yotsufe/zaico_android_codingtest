@@ -60,7 +60,7 @@ class FirstFragment : Fragment() {
     private fun showError(error: Throwable) {
         Toast.makeText(
             requireContext(),
-            getString(R.string.error_load_inventories, error.message),
+            getString(R.string.error_load_inventories, requireContext().messageOf(error)),
             Toast.LENGTH_LONG
         ).show()
     }
