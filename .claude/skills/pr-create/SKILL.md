@@ -334,7 +334,6 @@ git tag -d wip/final
 
 ```
 Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>
-Claude-Session: <セッション URL>
 ```
 
 ## 7. push と PR 作成
@@ -442,8 +441,6 @@ git diff --stat main..HEAD
 
 ```
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
-
-<セッション URL>
 ```
 
 ---
