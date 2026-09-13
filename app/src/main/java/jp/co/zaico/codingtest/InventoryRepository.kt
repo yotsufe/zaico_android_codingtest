@@ -1,12 +1,19 @@
 package jp.co.zaico.codingtest
 
-import android.content.Context
 import io.ktor.client.HttpClient
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.put
 
-/** 在庫データ作成の窓口。ViewModel はこの interface にだけ依存する。 */
+/** 在庫データの窓口。ViewModel はこの interface にだけ依存する。 */
 interface InventoryRepository {
+
+    /** 在庫一覧を取得する。失敗時は例外を投げる。 */
+    suspend fun getInventories(): List<Inventory>
+
+    /** 在庫詳細を取得する。失敗時は例外を投げる。 */
+    suspend fun getInventory(inventoryId: Int): Inventory
 
     /** タイトルだけを指定して在庫データを作成する。失敗時は例外を投げる。 */
     suspend fun createInventory(title: String)
@@ -28,23 +35,36 @@ class ZaicoInventoryRepository(
     },
 ) : InventoryRepository {
 
-    override suspend fun createInventory(title: String) {
-        httpClientFactory().use { client ->
-            val companyId = companyIdProvider(client)
+    override suspend fun getInventories(): List<Inventory> = withInventoriesPath { client, path ->
+        ZaicoApi.dataOf(ZaicoApi.getText(client, endpoint, path))
+            .jsonArray
+            .map { ZaicoApi.toInventory(it.jsonObject) }
+    }
 
+    override suspend fun getInventory(inventoryId: Int): Inventory = withInventoriesPath { client, path ->
+        val body = ZaicoApi.getText(client, endpoint, "${path.removeSuffix(".json")}/$inventoryId.json")
+        ZaicoApi.toInventory(ZaicoApi.dataOf(body).jsonObject)
+    }
+
+    override suspend fun createInventory(title: String) {
+        withInventoriesPath { client, path ->
             // 公開 API v2 ドキュメントの Inventories_create に準拠する。
             // 必須パラメータは title のみ。
             // ドキュメントの成功ステータスは 201 だが実機は 200 を返すため、2xx を成功として扱う。
             ZaicoApi.postText(
                 client = client,
                 endpoint = endpoint,
-                path = "/api/v2/orgs/companies/$companyId/inventories.json",
+                path = path,
                 jsonBody = buildJsonObject { put("title", title) }.toString(),
             )
         }
     }
 
-    companion object {
-        fun from(context: Context) = ZaicoInventoryRepository(ZaicoApiEndpoint.from(context))
+    /** クライアントの生成・解放と company_id の解決をまとめる。3 つの操作すべてが必要とするため。 */
+    private suspend fun <T> withInventoriesPath(
+        block: suspend (HttpClient, String) -> T,
+    ): T = httpClientFactory().use { client ->
+        val companyId = companyIdProvider(client)
+        block(client, "/api/v2/orgs/companies/$companyId/inventories.json")
     }
 }

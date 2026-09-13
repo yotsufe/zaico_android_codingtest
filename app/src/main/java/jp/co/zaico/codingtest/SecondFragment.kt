@@ -2,14 +2,18 @@ package jp.co.zaico.codingtest
 
 import android.os.Bundle
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.viewModels
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import dagger.hilt.android.AndroidEntryPoint
 import jp.co.zaico.codingtest.databinding.FragmentSecondBinding
 
+@AndroidEntryPoint
 class SecondFragment : Fragment() {
 
+    private val viewModel: SecondViewModel by viewModels()
     private var _binding: FragmentSecondBinding? = null
 
     override fun onCreateView(
@@ -26,9 +30,7 @@ class SecondFragment : Fragment() {
 
         val inventoryId = requireArguments().getString("inventoryId")!!.toInt()
 
-        val _viewModel = SecondViewModel(requireContext())
-
-        _viewModel.getInventory(inventoryId)
+        viewModel.getInventory(inventoryId)
             .onSuccess { initView(it) }
             .onFailure { showError(it) }
 

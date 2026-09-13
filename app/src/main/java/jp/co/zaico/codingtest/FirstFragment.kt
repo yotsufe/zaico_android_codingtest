@@ -2,6 +2,7 @@ package jp.co.zaico.codingtest
 
 import android.os.Bundle
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.viewModels
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -14,10 +15,13 @@ import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
+import dagger.hilt.android.AndroidEntryPoint
 import jp.co.zaico.codingtest.databinding.FragmentFirstBinding
 
+@AndroidEntryPoint
 class FirstFragment : Fragment() {
 
+    private val viewModel: FirstViewModel by viewModels()
     private var _binding: FragmentFirstBinding? = null
 
     override fun onCreateView(
@@ -30,8 +34,6 @@ class FirstFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-
-        val _viewModel = FirstViewModel(requireContext())
 
         val _layoutManager = LinearLayoutManager(requireContext())
         val _dividerItemDecoration = DividerItemDecoration(
@@ -51,7 +53,7 @@ class FirstFragment : Fragment() {
             it.adapter = _adapter
         }
 
-        _viewModel.getInventories()
+        viewModel.getInventories()
             .onSuccess { _adapter.submitList(it) }
             .onFailure { showError(it) }
 

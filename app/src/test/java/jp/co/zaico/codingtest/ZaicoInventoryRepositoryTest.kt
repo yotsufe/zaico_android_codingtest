@@ -139,4 +139,59 @@ class ZaicoInventoryRepositoryTest {
         assertEquals(1, companyIdCalls)
         assertEquals(1, engine.requestHistory.size)
     }
+
+    @Test
+    fun `getInventories は一覧エンドポイントから在庫を読み取る`() = runTest {
+        var requestedUrl = ""
+        val engine = MockEngine {
+            requestedUrl = it.url.toString()
+            respond("""{"data":[{"id":1,"title":"ねじ","quantity":"10"},{"id":2,"title":"ばね"}]}""")
+        }
+
+        val inventories = repositoryOf(engine).getInventories()
+
+        assertEquals(
+            "https://example.test/api/v2/orgs/companies/42/inventories.json",
+            requestedUrl
+        )
+        assertEquals(listOf(Inventory(1, "ねじ", "10"), Inventory(2, "ばね", "")), inventories)
+    }
+
+    @Test
+    fun `getInventories は在庫が 0 件なら空のリストを返す`() = runTest {
+        val engine = MockEngine { respond("""{"data":[]}""") }
+
+        assertEquals(emptyList<Inventory>(), repositoryOf(engine).getInventories())
+    }
+
+    @Test
+    fun `getInventory は在庫 ID を含むパスから 1 件を読み取る`() = runTest {
+        var requestedUrl = ""
+        val engine = MockEngine {
+            requestedUrl = it.url.toString()
+            respond("""{"data":{"id":7,"title":"ねじ","quantity":"10"}}""")
+        }
+
+        val inventory = repositoryOf(engine).getInventory(7)
+
+        assertEquals(
+            "https://example.test/api/v2/orgs/companies/42/inventories/7.json",
+            requestedUrl
+        )
+        assertEquals(Inventory(7, "ねじ", "10"), inventory)
+    }
+
+    @Test
+    fun `getInventories はエラーステータスなら ApiException を投げる`() {
+        val engine = MockEngine {
+            respond("""{"title":"認証エラー","status":401,"detail":"トークンが無効です。"}""",
+                HttpStatusCode.Unauthorized)
+        }
+
+        val error = assertThrows(ApiException::class.java) {
+            runBlocking { repositoryOf(engine).getInventories() }
+        }
+
+        assertEquals("トークンが無効です。", error.message)
+    }
 }

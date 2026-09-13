@@ -1,31 +1,20 @@
 package jp.co.zaico.codingtest
 
-import android.content.Context
 import androidx.lifecycle.ViewModel
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
-import kotlinx.serialization.json.jsonObject
+import javax.inject.Inject
 
-class SecondViewModel(
-    val context: Context
+@HiltViewModel
+class SecondViewModel @Inject constructor(
+    private val repository: InventoryRepository,
 ) : ViewModel() {
 
-    private val endpoint = ZaicoApiEndpoint.from(context)
-
+    // TODO: 一覧の再読み込み対応時に viewModelScope + StateFlow へ移す
     // データ取得（失敗した場合は Result.failure を返し、呼び出し側でエラー表示する）
     fun getInventory(inventoryId: Int): Result<Inventory> = runBlocking(Dispatchers.IO) {
-        runCatching {
-            ZaicoApi.newClient().use { client ->
-                val companyId = ZaicoApi.companyId(client, endpoint)
-                val body = ZaicoApi.getText(
-                    client,
-                    endpoint,
-                    "/api/v2/orgs/companies/$companyId/inventories/$inventoryId.json"
-                )
-
-                ZaicoApi.toInventory(ZaicoApi.dataOf(body).jsonObject)
-            }
-        }
+        runCatching { repository.getInventory(inventoryId) }
     }
 
 }
