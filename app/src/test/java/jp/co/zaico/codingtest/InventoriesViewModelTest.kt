@@ -28,7 +28,7 @@ class InventoriesViewModelTest {
     fun `読み込みに成功したら Loaded になる`() = runTest {
         val viewModel = InventoriesViewModel(FakeInventoryRepository(inventories))
 
-        viewModel.load()
+        viewModel.fetch()
 
         assertEquals(InventoriesUiState.Loaded(inventories), viewModel.uiState.value)
     }
@@ -38,7 +38,7 @@ class InventoriesViewModelTest {
         val gate = CompletableDeferred<Unit>()
         val viewModel = InventoriesViewModel(FakeInventoryRepository(inventories, gate = gate))
 
-        viewModel.load()
+        viewModel.fetch()
         assertEquals(InventoriesUiState.Loading, viewModel.uiState.value)
 
         gate.complete(Unit)
@@ -51,7 +51,7 @@ class InventoriesViewModelTest {
             FakeInventoryRepository(failure = ApiException("トークンが無効です。"))
         )
 
-        viewModel.load()
+        viewModel.fetch()
 
         val state = viewModel.uiState.value
         assertTrue(state is InventoriesUiState.Failed)
@@ -59,12 +59,12 @@ class InventoriesViewModelTest {
     }
 
     @Test
-    fun `load を呼ぶたびに読み込み直す`() = runTest {
+    fun `fetch を呼ぶたびに読み込み直す`() = runTest {
         val repository = FakeInventoryRepository(inventories)
         val viewModel = InventoriesViewModel(repository)
 
-        viewModel.load()
-        viewModel.load()
+        viewModel.fetch()
+        viewModel.fetch()
 
         assertEquals(2, repository.getInventoriesCallCount)
     }
@@ -77,20 +77,20 @@ class InventoriesViewModelTest {
             FakeInventoryRepository(failure = CancellationException("cancelled"))
         )
 
-        viewModel.load()
+        viewModel.fetch()
 
         assertEquals(InventoriesUiState.Loading, viewModel.uiState.value)
     }
 
     @Test
-    fun `load が並走しても後から呼んだ方の結果が残る`() = runTest {
+    fun `fetch が並走しても後から呼んだ方の結果が残る`() = runTest {
         // 打ち切らずに並走させると、遅れて返った古い一覧が新しい一覧を上書きし、
         // 作成したばかりの在庫が消えて見える。
         val repository = SlowRepository()
         val viewModel = InventoriesViewModel(repository)
 
-        viewModel.load()   // 1 本目（古い）
-        viewModel.load()   // 2 本目（新しい）
+        viewModel.fetch()   // 1 本目（古い）
+        viewModel.fetch()   // 2 本目（新しい）
 
         val stale = listOf(Inventory(1, "古い一覧", "1"))
         val fresh = listOf(Inventory(2, "作成した在庫", "1"))
@@ -102,36 +102,36 @@ class InventoriesViewModelTest {
     }
 
     @Test
-    fun `loadIfNeeded は読み込み済みなら通信しない`() = runTest {
+    fun `fetchIfNeeded は読み込み済みなら通信しない`() = runTest {
         val repository = FakeInventoryRepository(inventories)
         val viewModel = InventoriesViewModel(repository)
 
-        viewModel.load()
-        viewModel.loadIfNeeded()
+        viewModel.fetch()
+        viewModel.fetchIfNeeded()
 
         assertEquals(1, repository.getInventoriesCallCount)
     }
 
     @Test
-    fun `loadIfNeeded は読み込み中なら重ねて通信しない`() = runTest {
+    fun `fetchIfNeeded は読み込み中なら重ねて通信しない`() = runTest {
         val gate = CompletableDeferred<Unit>()
         val repository = FakeInventoryRepository(inventories, gate = gate)
         val viewModel = InventoriesViewModel(repository)
 
-        viewModel.loadIfNeeded()
-        viewModel.loadIfNeeded()
+        viewModel.fetchIfNeeded()
+        viewModel.fetchIfNeeded()
 
         assertEquals(1, repository.getInventoriesCallCount)
         gate.complete(Unit)
     }
 
     @Test
-    fun `loadIfNeeded は失敗したあとなら読み込み直す`() = runTest {
+    fun `fetchIfNeeded は失敗したあとなら読み込み直す`() = runTest {
         val repository = FakeInventoryRepository(failure = ApiException("圏外です。"))
         val viewModel = InventoriesViewModel(repository)
 
-        viewModel.loadIfNeeded()
-        viewModel.loadIfNeeded()
+        viewModel.fetchIfNeeded()
+        viewModel.fetchIfNeeded()
 
         assertEquals(2, repository.getInventoriesCallCount)
     }
@@ -142,7 +142,7 @@ class InventoriesViewModelTest {
             FakeInventoryRepository(failure = ApiException("圏外です。"))
         )
 
-        viewModel.load()
+        viewModel.fetch()
         viewModel.onErrorShown()
 
         assertEquals(InventoriesUiState.Failed(null), viewModel.uiState.value)

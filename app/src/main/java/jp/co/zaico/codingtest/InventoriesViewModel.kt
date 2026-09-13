@@ -39,7 +39,7 @@ class InventoriesViewModel @Inject constructor(
     private val _uiState = MutableStateFlow<InventoriesUiState>(InventoriesUiState.Loading)
     val uiState: StateFlow<InventoriesUiState> = _uiState.asStateFlow()
 
-    private var loadJob: Job? = null
+    private var fetchJob: Job? = null
 
     /**
      * まだ読み込めていなければ読み込む。
@@ -47,18 +47,18 @@ class InventoriesViewModel @Inject constructor(
      * 画面復帰のたびに呼んでよい。読み込み済みなら通信は起きないので、画面回転や
      * 他アプリからの復帰で無駄に API を叩かない。失敗したまま離れて戻った場合は再試行する。
      */
-    fun loadIfNeeded() {
+    fun fetchIfNeeded() {
         if (_uiState.value is InventoriesUiState.Loaded) return
-        if (loadJob?.isActive == true) return
-        load()
+        if (fetchJob?.isActive == true) return
+        fetch()
     }
 
     /** 在庫一覧を読み込み直す。在庫を作成した直後など、内容が変わったときに呼ぶ。 */
-    fun load() {
+    fun fetch() {
         // 直前の読み込みを打ち切る。打ち切らないと通信が並走し、遅れて返った
         // 古い一覧が新しい一覧を上書きして、作成した在庫が消えて見える。
-        loadJob?.cancel()
-        loadJob = viewModelScope.launch {
+        fetchJob?.cancel()
+        fetchJob = viewModelScope.launch {
             _uiState.value = InventoriesUiState.Loading
             try {
                 _uiState.value = InventoriesUiState.Loaded(repository.getInventories())

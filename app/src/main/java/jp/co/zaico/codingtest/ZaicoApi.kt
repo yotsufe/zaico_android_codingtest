@@ -29,7 +29,7 @@ open class ApiException(message: String) : Exception(message)
 /**
  * API トークンが設定されていないときに投げる例外。
  *
- * 表示する文言は文字列リソースを持つ UI 層が [messageOf] で決める。
+ * 表示する文言は文字列リソースを持つ UI 層が [displayMessageOf] で決める。
  */
 class ApiTokenMissingException : ApiException("API token is not configured")
 
@@ -53,7 +53,7 @@ object ZaicoApi {
     }
 
     /** 認証ヘッダ付きで GET する。エラーステータスなら ApiException を投げる。 */
-    suspend fun getText(
+    suspend fun getRawBody(
         client: HttpClient,
         endpoint: ZaicoApiEndpoint,
         path: String,
@@ -62,7 +62,7 @@ object ZaicoApi {
     }
 
     /** 認証ヘッダ付きで JSON を POST する。エラーステータスなら ApiException を投げる。 */
-    suspend fun postText(
+    suspend fun postRawBody(
         client: HttpClient,
         endpoint: ZaicoApiEndpoint,
         path: String,
@@ -102,7 +102,7 @@ object ZaicoApi {
     }
 
     /** 在庫エンドポイントのパスに必要な company_id を返す（初回のみ API を呼ぶ）。 */
-    suspend fun companyId(client: HttpClient, endpoint: ZaicoApiEndpoint): Int =
+    suspend fun resolveCompanyId(client: HttpClient, endpoint: ZaicoApiEndpoint): Int =
         cachedCompanyId ?: fetchCompanyId(client, endpoint).also { cachedCompanyId = it }
 
     /**
@@ -111,8 +111,8 @@ object ZaicoApi {
      * プロセス全体で共有されるキャッシュはテスト間で漏れるため、テストはこちらを検証する。
      */
     internal suspend fun fetchCompanyId(client: HttpClient, endpoint: ZaicoApiEndpoint): Int {
-        val body = getText(client, endpoint, "/api/v2/orgs/companies.json")
-        val companies = dataOf(body).jsonArray
+        val body = getRawBody(client, endpoint, "/api/v2/orgs/companies.json")
+        val companies = parseData(body).jsonArray
         if (companies.isEmpty()) {
             throw ApiException("利用可能な会社が見つかりませんでした")
         }
@@ -121,7 +121,7 @@ object ZaicoApi {
     }
 
     /** v2 のレスポンスは {"data": ...} で包まれているので、その中身を取り出す。 */
-    fun dataOf(body: String): JsonElement =
+    fun parseData(body: String): JsonElement =
         json.parseToJsonElement(body).jsonObject["data"]
             ?: throw ApiException("レスポンスに data が含まれていません")
 

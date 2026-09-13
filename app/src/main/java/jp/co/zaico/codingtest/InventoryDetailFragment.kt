@@ -42,7 +42,7 @@ class InventoryDetailFragment : Fragment() {
             }
         }
 
-        viewModel.loadIfNeeded(inventoryId)
+        viewModel.fetchIfNeeded(inventoryId)
     }
 
     private fun render(state: InventoryDetailUiState) {
@@ -50,7 +50,7 @@ class InventoryDetailFragment : Fragment() {
 
         when (state) {
             is InventoryDetailUiState.Loading -> Unit
-            is InventoryDetailUiState.Loaded -> initView(state.inventory)
+            is InventoryDetailUiState.Loaded -> showInventory(state.inventory)
             is InventoryDetailUiState.Failed -> state.error?.let {
                 showError(it)
                 // 表示済みにしないと、購読し直すたびに同じ Toast が出る
@@ -59,7 +59,7 @@ class InventoryDetailFragment : Fragment() {
         }
     }
 
-    private fun initView(inventory: Inventory) {
+    private fun showInventory(inventory: Inventory) {
         binding.idText.text = inventory.id.toString()
         binding.titleText.text = inventory.title
         binding.quantityText.text = inventory.quantity
@@ -68,7 +68,7 @@ class InventoryDetailFragment : Fragment() {
     private fun showError(error: Throwable) {
         Toast.makeText(
             requireContext(),
-            getString(R.string.error_load_inventory, requireContext().messageOf(error)),
+            getString(R.string.error_load_inventory, requireContext().displayMessageOf(error)),
             Toast.LENGTH_LONG
         ).show()
     }

@@ -46,7 +46,7 @@ class InventoriesFragment : Fragment() {
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
-            viewModel.load()
+            viewModel.fetch()
         }
     }
 
@@ -92,7 +92,7 @@ class InventoriesFragment : Fragment() {
      */
     override fun onResume() {
         super.onResume()
-        viewModel.loadIfNeeded()
+        viewModel.fetchIfNeeded()
     }
 
     private fun render(state: InventoriesUiState) {
@@ -138,7 +138,7 @@ class InventoriesFragment : Fragment() {
     private fun showError(error: Throwable) {
         Toast.makeText(
             requireContext(),
-            getString(R.string.error_load_inventories, requireContext().messageOf(error)),
+            getString(R.string.error_load_inventories, requireContext().displayMessageOf(error)),
             Toast.LENGTH_LONG
         ).show()
     }

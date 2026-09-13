@@ -76,7 +76,7 @@ class CreateInventoryActivity : AppCompatActivity() {
     private fun showError(error: Throwable) {
         Toast.makeText(
             this,
-            getString(R.string.error_create_inventory, messageOf(error)),
+            getString(R.string.error_create_inventory, displayMessageOf(error)),
             Toast.LENGTH_LONG
         ).show()
         viewModel.onResultHandled()

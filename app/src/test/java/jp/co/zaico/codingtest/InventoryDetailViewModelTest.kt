@@ -29,7 +29,7 @@ class InventoryDetailViewModelTest {
         val repository = FakeInventoryRepository(inventory = inventory)
         val viewModel = InventoryDetailViewModel(repository)
 
-        viewModel.loadIfNeeded(7)
+        viewModel.fetchIfNeeded(7)
 
         assertEquals(InventoryDetailUiState.Loaded(inventory), viewModel.uiState.value)
         assertEquals(listOf(7), repository.requestedInventoryIds)
@@ -40,7 +40,7 @@ class InventoryDetailViewModelTest {
         val gate = CompletableDeferred<Unit>()
         val viewModel = InventoryDetailViewModel(FakeInventoryRepository(inventory = inventory, gate = gate))
 
-        viewModel.loadIfNeeded(7)
+        viewModel.fetchIfNeeded(7)
         assertEquals(InventoryDetailUiState.Loading, viewModel.uiState.value)
 
         gate.complete(Unit)
@@ -51,7 +51,7 @@ class InventoryDetailViewModelTest {
     fun `読み込みに失敗したら例外を持つ Failed になる`() = runTest {
         val viewModel = InventoryDetailViewModel(FakeInventoryRepository(failure = ApiException("Not Found")))
 
-        viewModel.loadIfNeeded(7)
+        viewModel.fetchIfNeeded(7)
 
         val state = viewModel.uiState.value
         assertTrue(state is InventoryDetailUiState.Failed)
@@ -66,43 +66,43 @@ class InventoryDetailViewModelTest {
             FakeInventoryRepository(failure = CancellationException("cancelled"))
         )
 
-        viewModel.loadIfNeeded(7)
+        viewModel.fetchIfNeeded(7)
 
         assertEquals(InventoryDetailUiState.Loading, viewModel.uiState.value)
     }
 
     @Test
-    fun `loadIfNeeded は読み込み済みなら通信しない`() = runTest {
+    fun `fetchIfNeeded は読み込み済みなら通信しない`() = runTest {
         val repository = FakeInventoryRepository(inventory = inventory)
         val viewModel = InventoryDetailViewModel(repository)
 
-        viewModel.loadIfNeeded(7)
-        viewModel.loadIfNeeded(7)
+        viewModel.fetchIfNeeded(7)
+        viewModel.fetchIfNeeded(7)
 
         assertEquals(listOf(7), repository.requestedInventoryIds)
     }
 
     @Test
-    fun `loadIfNeeded は読み込み中なら重ねて通信しない`() = runTest {
+    fun `fetchIfNeeded は読み込み中なら重ねて通信しない`() = runTest {
         // 読み込みが並走しないことは、このガードだけで保証している。
         val gate = CompletableDeferred<Unit>()
         val repository = FakeInventoryRepository(inventory = inventory, gate = gate)
         val viewModel = InventoryDetailViewModel(repository)
 
-        viewModel.loadIfNeeded(7)
-        viewModel.loadIfNeeded(7)
+        viewModel.fetchIfNeeded(7)
+        viewModel.fetchIfNeeded(7)
 
         assertEquals(listOf(7), repository.requestedInventoryIds)
         gate.complete(Unit)
     }
 
     @Test
-    fun `loadIfNeeded は失敗したあとなら読み込み直す`() = runTest {
+    fun `fetchIfNeeded は失敗したあとなら読み込み直す`() = runTest {
         val repository = FakeInventoryRepository(failure = ApiException("Not Found"))
         val viewModel = InventoryDetailViewModel(repository)
 
-        viewModel.loadIfNeeded(7)
-        viewModel.loadIfNeeded(7)
+        viewModel.fetchIfNeeded(7)
+        viewModel.fetchIfNeeded(7)
 
         assertEquals(listOf(7, 7), repository.requestedInventoryIds)
     }
@@ -111,7 +111,7 @@ class InventoryDetailViewModelTest {
     fun `onErrorShown を呼ぶと同じエラーを二度通知しない`() = runTest {
         val viewModel = InventoryDetailViewModel(FakeInventoryRepository(failure = ApiException("Not Found")))
 
-        viewModel.loadIfNeeded(7)
+        viewModel.fetchIfNeeded(7)
         viewModel.onErrorShown()
 
         assertEquals(InventoryDetailUiState.Failed(null), viewModel.uiState.value)
