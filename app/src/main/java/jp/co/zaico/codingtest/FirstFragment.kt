@@ -28,7 +28,7 @@ class FirstFragment : Fragment() {
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
-        _binding = FragmentFirstBinding.inflate(layoutInflater)
+        _binding = FragmentFirstBinding.inflate(inflater, container, false)
         return _binding!!.root
     }
 
@@ -51,6 +51,10 @@ class FirstFragment : Fragment() {
             it.layoutManager = _layoutManager
             it.addItemDecoration(_dividerItemDecoration)
             it.adapter = _adapter
+        }
+
+        _binding!!.fab.setOnClickListener {
+            startActivity(AddActivity.createIntent(requireContext()))
         }
 
         viewModel.getInventories()
