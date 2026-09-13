@@ -7,7 +7,6 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.core.os.bundleOf
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
@@ -66,8 +65,9 @@ class InventoriesFragment : Fragment() {
         val layoutManager = LinearLayoutManager(requireContext())
         adapter = InventoryAdapter(object : InventoryAdapter.OnItemClickListener {
             override fun onItemClick(item: Inventory) {
-                val bundle = bundleOf("inventoryId" to item.id.toString())
-                findNavController().navigate(R.id.action_inventories_to_inventoryDetail, bundle)
+                findNavController().navigate(
+                    InventoriesFragmentDirections.actionInventoriesToInventoryDetail(item.id)
+                )
             }
         })
 

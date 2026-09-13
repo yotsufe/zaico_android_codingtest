@@ -11,6 +11,7 @@ import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import androidx.navigation.fragment.navArgs
 import dagger.hilt.android.AndroidEntryPoint
 import jp.co.zaico.codingtest.databinding.FragmentInventoryDetailBinding
 import kotlinx.coroutines.launch
@@ -18,6 +19,7 @@ import kotlinx.coroutines.launch
 @AndroidEntryPoint
 class InventoryDetailFragment : Fragment() {
 
+    private val args: InventoryDetailFragmentArgs by navArgs()
     private val viewModel: InventoryDetailViewModel by viewModels()
     private var _binding: FragmentInventoryDetailBinding? = null
     private val binding get() = checkNotNull(_binding)
@@ -34,15 +36,13 @@ class InventoryDetailFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        val inventoryId = requireArguments().getString("inventoryId")!!.toInt()
-
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.uiState.collect { render(it) }
             }
         }
 
-        viewModel.fetchIfNeeded(inventoryId)
+        viewModel.fetchIfNeeded(args.inventoryId)
     }
 
     private fun render(state: InventoryDetailUiState) {

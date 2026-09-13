@@ -5,6 +5,7 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.kapt)
     alias(libs.plugins.hilt.android)
+    alias(libs.plugins.androidx.navigation.safeargs)
     kotlin("plugin.serialization") version "1.5.31"
 }
 

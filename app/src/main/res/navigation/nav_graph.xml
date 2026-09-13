@@ -26,6 +26,6 @@
             app:destination="@id/inventoriesFragment" />
         <argument
             android:name="inventoryId"
-            app:argType="string" />
+            app:argType="integer" />
     </fragment>
 </navigation>
