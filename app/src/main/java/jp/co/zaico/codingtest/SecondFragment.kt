@@ -20,7 +20,7 @@ class SecondFragment : Fragment() {
 
     private val viewModel: SecondViewModel by viewModels()
     private var _binding: FragmentSecondBinding? = null
-    private val binding get() = checkNotNull(_binding) { "binding is accessed outside of the view lifecycle" }
+    private val binding get() = checkNotNull(_binding)
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,

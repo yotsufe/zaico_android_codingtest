@@ -30,7 +30,7 @@ class FirstFragment : Fragment() {
 
     private val viewModel: FirstViewModel by viewModels()
     private var _binding: FragmentFirstBinding? = null
-    private val binding get() = checkNotNull(_binding) { "binding is accessed outside of the view lifecycle" }
+    private val binding get() = checkNotNull(_binding)
     private var adapter: MyAdapter? = null
 
     /** 一覧の先頭にある在庫の ID。差し替え時にスクロール位置を戻すかの判定に使う。 */
