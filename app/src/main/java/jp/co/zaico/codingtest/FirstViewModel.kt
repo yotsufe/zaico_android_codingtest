@@ -1,20 +1,83 @@
 package jp.co.zaico.codingtest
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+/** 在庫一覧画面の状態。 */
+sealed interface InventoryListUiState {
+
+    /** 読み込み中。 */
+    data object Loading : InventoryListUiState
+
+    /** 読み込みに成功した。 */
+    data class Loaded(val inventories: List<Inventory>) : InventoryListUiState
+
+    /**
+     * 読み込みに失敗した。
+     *
+     * [error] はまだ画面に出していないエラー。表示後に [FirstViewModel.onErrorShown] を
+     * 呼ぶと null になる。StateFlow は最後の値を保持するため、消さないと購読し直すたびに
+     * 同じ Toast が再表示される。
+     */
+    data class Failed(val error: Throwable?) : InventoryListUiState
+}
+
+/** 在庫一覧画面の ViewModel。 */
 @HiltViewModel
 class FirstViewModel @Inject constructor(
     private val repository: InventoryRepository,
 ) : ViewModel() {
 
-    // TODO: 一覧の再読み込み対応時に viewModelScope + StateFlow へ移す
-    // データ取得（失敗した場合は Result.failure を返し、呼び出し側でエラー表示する）
-    fun getInventories(): Result<List<Inventory>> = runBlocking(Dispatchers.IO) {
-        runCatching { repository.getInventories() }
+    private val _uiState = MutableStateFlow<InventoryListUiState>(InventoryListUiState.Loading)
+    val uiState: StateFlow<InventoryListUiState> = _uiState.asStateFlow()
+
+    private var loadJob: Job? = null
+
+    /**
+     * まだ読み込めていなければ読み込む。
+     *
+     * 画面復帰のたびに呼んでよい。読み込み済みなら通信は起きないので、画面回転や
+     * 他アプリからの復帰で無駄に API を叩かない。失敗したまま離れて戻った場合は再試行する。
+     */
+    fun loadIfNeeded() {
+        if (_uiState.value is InventoryListUiState.Loaded) return
+        if (loadJob?.isActive == true) return
+        load()
+    }
+
+    /** 在庫一覧を読み込み直す。在庫を作成した直後など、内容が変わったときに呼ぶ。 */
+    fun load() {
+        // 直前の読み込みを打ち切る。打ち切らないと通信が並走し、遅れて返った
+        // 古い一覧が新しい一覧を上書きして、作成した在庫が消えて見える。
+        loadJob?.cancel()
+        loadJob = viewModelScope.launch {
+            _uiState.value = InventoryListUiState.Loading
+            try {
+                _uiState.value = InventoryListUiState.Loaded(repository.getInventories())
+            } catch (cancellation: CancellationException) {
+                // runCatching はキャンセルも捕まえてしまうため使わない。
+                // 打ち切りや画面破棄を「読み込み失敗」として表示しないように再送出する。
+                throw cancellation
+            } catch (error: Exception) {
+                _uiState.value = InventoryListUiState.Failed(error)
+            }
+        }
+    }
+
+    /** エラーを表示し終えたことを通知する。同じエラーが再表示されないようにする。 */
+    fun onErrorShown() {
+        val state = _uiState.value
+        if (state is InventoryListUiState.Failed && state.error != null) {
+            _uiState.value = InventoryListUiState.Failed(null)
+        }
     }
 
 }
