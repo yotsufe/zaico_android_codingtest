@@ -4,7 +4,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:ignore="HardcodedText"
-    tools:context=".SecondFragment">
+    tools:context=".InventoryDetailFragment">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -24,7 +24,7 @@
                 android:text="ID" />
 
             <TextView
-                android:id="@+id/textViewId"
+                android:id="@+id/idText"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="16dp"
@@ -78,7 +78,7 @@
                 android:text="タイトル" />
 
             <TextView
-                android:id="@+id/textViewTitle"
+                android:id="@+id/titleText"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="16dp"
@@ -105,7 +105,7 @@
                 android:text="数量" />
 
             <TextView
-                android:id="@+id/textViewQuantity"
+                android:id="@+id/quantityText"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="16dp"

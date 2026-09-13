@@ -10,7 +10,7 @@ import org.junit.Rule
 import org.junit.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)
-class SecondViewModelTest {
+class InventoryDetailViewModelTest {
 
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule()
@@ -19,7 +19,7 @@ class SecondViewModelTest {
 
     @Test
     fun `読み込み前は Loading を示す`() {
-        val viewModel = SecondViewModel(FakeInventoryRepository(inventory = inventory))
+        val viewModel = InventoryDetailViewModel(FakeInventoryRepository(inventory = inventory))
 
         assertEquals(InventoryDetailUiState.Loading, viewModel.uiState.value)
     }
@@ -27,9 +27,9 @@ class SecondViewModelTest {
     @Test
     fun `読み込みに成功したら指定した在庫の Loaded になる`() = runTest {
         val repository = FakeInventoryRepository(inventory = inventory)
-        val viewModel = SecondViewModel(repository)
+        val viewModel = InventoryDetailViewModel(repository)
 
-        viewModel.loadIfNeeded(7)
+        viewModel.fetchIfNeeded(7)
 
         assertEquals(InventoryDetailUiState.Loaded(inventory), viewModel.uiState.value)
         assertEquals(listOf(7), repository.requestedInventoryIds)
@@ -38,9 +38,9 @@ class SecondViewModelTest {
     @Test
     fun `読み込み中は Loading のままで、完了すると Loaded になる`() = runTest {
         val gate = CompletableDeferred<Unit>()
-        val viewModel = SecondViewModel(FakeInventoryRepository(inventory = inventory, gate = gate))
+        val viewModel = InventoryDetailViewModel(FakeInventoryRepository(inventory = inventory, gate = gate))
 
-        viewModel.loadIfNeeded(7)
+        viewModel.fetchIfNeeded(7)
         assertEquals(InventoryDetailUiState.Loading, viewModel.uiState.value)
 
         gate.complete(Unit)
@@ -49,9 +49,9 @@ class SecondViewModelTest {
 
     @Test
     fun `読み込みに失敗したら例外を持つ Failed になる`() = runTest {
-        val viewModel = SecondViewModel(FakeInventoryRepository(failure = ApiException("Not Found")))
+        val viewModel = InventoryDetailViewModel(FakeInventoryRepository(failure = ApiException("Not Found")))
 
-        viewModel.loadIfNeeded(7)
+        viewModel.fetchIfNeeded(7)
 
         val state = viewModel.uiState.value
         assertTrue(state is InventoryDetailUiState.Failed)
@@ -62,56 +62,56 @@ class SecondViewModelTest {
     fun `読み込みがキャンセルされたら Failed にしない`() = runTest {
         // runCatching は CancellationException も捕まえてしまうため、
         // キャンセルが「読み込み失敗」として画面に出ないことを保証する。
-        val viewModel = SecondViewModel(
+        val viewModel = InventoryDetailViewModel(
             FakeInventoryRepository(failure = CancellationException("cancelled"))
         )
 
-        viewModel.loadIfNeeded(7)
+        viewModel.fetchIfNeeded(7)
 
         assertEquals(InventoryDetailUiState.Loading, viewModel.uiState.value)
     }
 
     @Test
-    fun `loadIfNeeded は読み込み済みなら通信しない`() = runTest {
+    fun `fetchIfNeeded は読み込み済みなら通信しない`() = runTest {
         val repository = FakeInventoryRepository(inventory = inventory)
-        val viewModel = SecondViewModel(repository)
+        val viewModel = InventoryDetailViewModel(repository)
 
-        viewModel.loadIfNeeded(7)
-        viewModel.loadIfNeeded(7)
+        viewModel.fetchIfNeeded(7)
+        viewModel.fetchIfNeeded(7)
 
         assertEquals(listOf(7), repository.requestedInventoryIds)
     }
 
     @Test
-    fun `loadIfNeeded は読み込み中なら重ねて通信しない`() = runTest {
+    fun `fetchIfNeeded は読み込み中なら重ねて通信しない`() = runTest {
         // 読み込みが並走しないことは、このガードだけで保証している。
         val gate = CompletableDeferred<Unit>()
         val repository = FakeInventoryRepository(inventory = inventory, gate = gate)
-        val viewModel = SecondViewModel(repository)
+        val viewModel = InventoryDetailViewModel(repository)
 
-        viewModel.loadIfNeeded(7)
-        viewModel.loadIfNeeded(7)
+        viewModel.fetchIfNeeded(7)
+        viewModel.fetchIfNeeded(7)
 
         assertEquals(listOf(7), repository.requestedInventoryIds)
         gate.complete(Unit)
     }
 
     @Test
-    fun `loadIfNeeded は失敗したあとなら読み込み直す`() = runTest {
+    fun `fetchIfNeeded は失敗したあとなら読み込み直す`() = runTest {
         val repository = FakeInventoryRepository(failure = ApiException("Not Found"))
-        val viewModel = SecondViewModel(repository)
+        val viewModel = InventoryDetailViewModel(repository)
 
-        viewModel.loadIfNeeded(7)
-        viewModel.loadIfNeeded(7)
+        viewModel.fetchIfNeeded(7)
+        viewModel.fetchIfNeeded(7)
 
         assertEquals(listOf(7, 7), repository.requestedInventoryIds)
     }
 
     @Test
     fun `onErrorShown を呼ぶと同じエラーを二度通知しない`() = runTest {
-        val viewModel = SecondViewModel(FakeInventoryRepository(failure = ApiException("Not Found")))
+        val viewModel = InventoryDetailViewModel(FakeInventoryRepository(failure = ApiException("Not Found")))
 
-        viewModel.loadIfNeeded(7)
+        viewModel.fetchIfNeeded(7)
         viewModel.onErrorShown()
 
         assertEquals(InventoryDetailUiState.Failed(null), viewModel.uiState.value)

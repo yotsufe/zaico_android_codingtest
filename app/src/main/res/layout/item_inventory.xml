@@ -11,17 +11,17 @@
 
         <variable
             name="clickListener"
-            type="jp.co.zaico.codingtest.MyAdapter.OnItemClickListener" />
+            type="jp.co.zaico.codingtest.InventoryAdapter.OnItemClickListener" />
     </data>
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_margin="16dp"
-        android:onClick="@{() -> clickListener.itemClick(inventory)}">
+        android:onClick="@{() -> clickListener.onItemClick(inventory)}">
 
         <TextView
-            android:id="@+id/textView_id"
+            android:id="@+id/idText"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@{String.valueOf(inventory.id)}"
@@ -31,13 +31,13 @@
             tools:text="1" />
 
         <TextView
-            android:id="@+id/textView_title"
+            android:id="@+id/titleText"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginHorizontal="16dp"
             android:text="@{inventory.title}"
             android:textSize="14sp"
-            app:layout_constraintStart_toEndOf="@id/textView_id"
+            app:layout_constraintStart_toEndOf="@id/idText"
             app:layout_constraintTop_toTopOf="parent"
             tools:text="title" />
 

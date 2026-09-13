@@ -23,7 +23,7 @@ sealed interface InventoryDetailUiState {
     /**
      * 読み込みに失敗した。
      *
-     * [error] はまだ画面に出していないエラー。表示後に [SecondViewModel.onErrorShown] を
+     * [error] はまだ画面に出していないエラー。表示後に [InventoryDetailViewModel.onErrorShown] を
      * 呼ぶと null になる。StateFlow は最後の値を保持するため、消さないと購読し直すたびに
      * 同じ Toast が再表示される。
      */
@@ -32,14 +32,14 @@ sealed interface InventoryDetailUiState {
 
 /** 在庫詳細画面の ViewModel。 */
 @HiltViewModel
-class SecondViewModel @Inject constructor(
+class InventoryDetailViewModel @Inject constructor(
     private val repository: InventoryRepository,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<InventoryDetailUiState>(InventoryDetailUiState.Loading)
     val uiState: StateFlow<InventoryDetailUiState> = _uiState.asStateFlow()
 
-    private var loadJob: Job? = null
+    private var fetchJob: Job? = null
 
     /**
      * まだ読み込めていなければ読み込む。
@@ -47,21 +47,21 @@ class SecondViewModel @Inject constructor(
      * この ViewModel は詳細画面 1 つに紐づき、表示する在庫は途中で変わらないため、
      * [inventoryId] の変化は考慮しなくてよい。画面回転では読み込み直さない。
      */
-    fun loadIfNeeded(inventoryId: Int) {
+    fun fetchIfNeeded(inventoryId: Int) {
         if (_uiState.value is InventoryDetailUiState.Loaded) return
-        if (loadJob?.isActive == true) return
-        load(inventoryId)
+        if (fetchJob?.isActive == true) return
+        fetch(inventoryId)
     }
 
     /**
      * 指定された在庫データを読み込み直す。
      *
-     * 呼び口は [loadIfNeeded] だけなので実際には並走しないが、呼び出し側のガードに
+     * 呼び口は [fetchIfNeeded] だけなので実際には並走しないが、呼び出し側のガードに
      * 依存せず「常に直前を打ち切ってから読む」という性質をこの関数だけで満たしておく。
      */
-    private fun load(inventoryId: Int) {
-        loadJob?.cancel()
-        loadJob = viewModelScope.launch {
+    private fun fetch(inventoryId: Int) {
+        fetchJob?.cancel()
+        fetchJob = viewModelScope.launch {
             _uiState.value = InventoryDetailUiState.Loading
             try {
                 _uiState.value = InventoryDetailUiState.Loaded(repository.getInventory(inventoryId))

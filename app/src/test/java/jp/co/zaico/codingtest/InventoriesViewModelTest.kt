@@ -10,7 +10,7 @@ import org.junit.Rule
 import org.junit.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)
-class FirstViewModelTest {
+class InventoriesViewModelTest {
 
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule()
@@ -19,52 +19,52 @@ class FirstViewModelTest {
 
     @Test
     fun `読み込み前は Loading を示す`() {
-        val viewModel = FirstViewModel(FakeInventoryRepository(inventories))
+        val viewModel = InventoriesViewModel(FakeInventoryRepository(inventories))
 
-        assertEquals(InventoryListUiState.Loading, viewModel.uiState.value)
+        assertEquals(InventoriesUiState.Loading, viewModel.uiState.value)
     }
 
     @Test
     fun `読み込みに成功したら Loaded になる`() = runTest {
-        val viewModel = FirstViewModel(FakeInventoryRepository(inventories))
+        val viewModel = InventoriesViewModel(FakeInventoryRepository(inventories))
 
-        viewModel.load()
+        viewModel.fetch()
 
-        assertEquals(InventoryListUiState.Loaded(inventories), viewModel.uiState.value)
+        assertEquals(InventoriesUiState.Loaded(inventories), viewModel.uiState.value)
     }
 
     @Test
     fun `読み込み中は Loading のままで、完了すると Loaded になる`() = runTest {
         val gate = CompletableDeferred<Unit>()
-        val viewModel = FirstViewModel(FakeInventoryRepository(inventories, gate = gate))
+        val viewModel = InventoriesViewModel(FakeInventoryRepository(inventories, gate = gate))
 
-        viewModel.load()
-        assertEquals(InventoryListUiState.Loading, viewModel.uiState.value)
+        viewModel.fetch()
+        assertEquals(InventoriesUiState.Loading, viewModel.uiState.value)
 
         gate.complete(Unit)
-        assertEquals(InventoryListUiState.Loaded(inventories), viewModel.uiState.value)
+        assertEquals(InventoriesUiState.Loaded(inventories), viewModel.uiState.value)
     }
 
     @Test
     fun `読み込みに失敗したら例外を持つ Failed になる`() = runTest {
-        val viewModel = FirstViewModel(
+        val viewModel = InventoriesViewModel(
             FakeInventoryRepository(failure = ApiException("トークンが無効です。"))
         )
 
-        viewModel.load()
+        viewModel.fetch()
 
         val state = viewModel.uiState.value
-        assertTrue(state is InventoryListUiState.Failed)
-        assertEquals("トークンが無効です。", (state as InventoryListUiState.Failed).error?.message)
+        assertTrue(state is InventoriesUiState.Failed)
+        assertEquals("トークンが無効です。", (state as InventoriesUiState.Failed).error?.message)
     }
 
     @Test
-    fun `load を呼ぶたびに読み込み直す`() = runTest {
+    fun `fetch を呼ぶたびに読み込み直す`() = runTest {
         val repository = FakeInventoryRepository(inventories)
-        val viewModel = FirstViewModel(repository)
+        val viewModel = InventoriesViewModel(repository)
 
-        viewModel.load()
-        viewModel.load()
+        viewModel.fetch()
+        viewModel.fetch()
 
         assertEquals(2, repository.getInventoriesCallCount)
     }
@@ -73,24 +73,24 @@ class FirstViewModelTest {
     fun `読み込みがキャンセルされたら Failed にしない`() = runTest {
         // runCatching は CancellationException も捕まえてしまうため、
         // キャンセルが「読み込み失敗」として画面に出ないことを保証する。
-        val viewModel = FirstViewModel(
+        val viewModel = InventoriesViewModel(
             FakeInventoryRepository(failure = CancellationException("cancelled"))
         )
 
-        viewModel.load()
+        viewModel.fetch()
 
-        assertEquals(InventoryListUiState.Loading, viewModel.uiState.value)
+        assertEquals(InventoriesUiState.Loading, viewModel.uiState.value)
     }
 
     @Test
-    fun `load が並走しても後から呼んだ方の結果が残る`() = runTest {
+    fun `fetch が並走しても後から呼んだ方の結果が残る`() = runTest {
         // 打ち切らずに並走させると、遅れて返った古い一覧が新しい一覧を上書きし、
         // 作成したばかりの在庫が消えて見える。
         val repository = SlowRepository()
-        val viewModel = FirstViewModel(repository)
+        val viewModel = InventoriesViewModel(repository)
 
-        viewModel.load()   // 1 本目（古い）
-        viewModel.load()   // 2 本目（新しい）
+        viewModel.fetch()   // 1 本目（古い）
+        viewModel.fetch()   // 2 本目（新しい）
 
         val stale = listOf(Inventory(1, "古い一覧", "1"))
         val fresh = listOf(Inventory(2, "作成した在庫", "1"))
@@ -98,54 +98,54 @@ class FirstViewModelTest {
         repository.gates[1].complete(fresh)   // 新しい方が先に返る
         repository.gates[0].complete(stale)   // 古い方が後に返る
 
-        assertEquals(InventoryListUiState.Loaded(fresh), viewModel.uiState.value)
+        assertEquals(InventoriesUiState.Loaded(fresh), viewModel.uiState.value)
     }
 
     @Test
-    fun `loadIfNeeded は読み込み済みなら通信しない`() = runTest {
+    fun `fetchIfNeeded は読み込み済みなら通信しない`() = runTest {
         val repository = FakeInventoryRepository(inventories)
-        val viewModel = FirstViewModel(repository)
+        val viewModel = InventoriesViewModel(repository)
 
-        viewModel.load()
-        viewModel.loadIfNeeded()
+        viewModel.fetch()
+        viewModel.fetchIfNeeded()
 
         assertEquals(1, repository.getInventoriesCallCount)
     }
 
     @Test
-    fun `loadIfNeeded は読み込み中なら重ねて通信しない`() = runTest {
+    fun `fetchIfNeeded は読み込み中なら重ねて通信しない`() = runTest {
         val gate = CompletableDeferred<Unit>()
         val repository = FakeInventoryRepository(inventories, gate = gate)
-        val viewModel = FirstViewModel(repository)
+        val viewModel = InventoriesViewModel(repository)
 
-        viewModel.loadIfNeeded()
-        viewModel.loadIfNeeded()
+        viewModel.fetchIfNeeded()
+        viewModel.fetchIfNeeded()
 
         assertEquals(1, repository.getInventoriesCallCount)
         gate.complete(Unit)
     }
 
     @Test
-    fun `loadIfNeeded は失敗したあとなら読み込み直す`() = runTest {
+    fun `fetchIfNeeded は失敗したあとなら読み込み直す`() = runTest {
         val repository = FakeInventoryRepository(failure = ApiException("圏外です。"))
-        val viewModel = FirstViewModel(repository)
+        val viewModel = InventoriesViewModel(repository)
 
-        viewModel.loadIfNeeded()
-        viewModel.loadIfNeeded()
+        viewModel.fetchIfNeeded()
+        viewModel.fetchIfNeeded()
 
         assertEquals(2, repository.getInventoriesCallCount)
     }
 
     @Test
     fun `onErrorShown を呼ぶと同じエラーを二度通知しない`() = runTest {
-        val viewModel = FirstViewModel(
+        val viewModel = InventoriesViewModel(
             FakeInventoryRepository(failure = ApiException("圏外です。"))
         )
 
-        viewModel.load()
+        viewModel.fetch()
         viewModel.onErrorShown()
 
-        assertEquals(InventoryListUiState.Failed(null), viewModel.uiState.value)
+        assertEquals(InventoriesUiState.Failed(null), viewModel.uiState.value)
     }
 
     /** 呼ばれるたびに gate を積み、応答が返る順序をテストから操作できるようにする。 */

@@ -7,7 +7,6 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.core.os.bundleOf
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
@@ -21,17 +20,17 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import dagger.hilt.android.AndroidEntryPoint
-import jp.co.zaico.codingtest.databinding.FirstItemBinding
-import jp.co.zaico.codingtest.databinding.FragmentFirstBinding
+import jp.co.zaico.codingtest.databinding.FragmentInventoriesBinding
+import jp.co.zaico.codingtest.databinding.ItemInventoryBinding
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
-class FirstFragment : Fragment() {
+class InventoriesFragment : Fragment() {
 
-    private val viewModel: FirstViewModel by viewModels()
-    private var _binding: FragmentFirstBinding? = null
+    private val viewModel: InventoriesViewModel by viewModels()
+    private var _binding: FragmentInventoriesBinding? = null
     private val binding get() = checkNotNull(_binding)
-    private var adapter: MyAdapter? = null
+    private var adapter: InventoryAdapter? = null
 
     /** 一覧の先頭にある在庫の ID。差し替え時にスクロール位置を戻すかの判定に使う。 */
     private var topInventoryId: Int? = null
@@ -46,7 +45,7 @@ class FirstFragment : Fragment() {
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
-            viewModel.load()
+            viewModel.fetch()
         }
     }
 
@@ -54,7 +53,7 @@ class FirstFragment : Fragment() {
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
-        val binding = FragmentFirstBinding.inflate(inflater, container, false)
+        val binding = FragmentInventoriesBinding.inflate(inflater, container, false)
         binding.fragment = this
         _binding = binding
         return binding.root
@@ -64,10 +63,11 @@ class FirstFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         val layoutManager = LinearLayoutManager(requireContext())
-        adapter = MyAdapter(object : MyAdapter.OnItemClickListener {
-            override fun itemClick(item: Inventory) {
-                val bundle = bundleOf("inventoryId" to item.id.toString())
-                findNavController().navigate(R.id.action_FirstFragment_to_SecondFragment, bundle)
+        adapter = InventoryAdapter(object : InventoryAdapter.OnItemClickListener {
+            override fun onItemClick(item: Inventory) {
+                findNavController().navigate(
+                    InventoriesFragmentDirections.actionInventoriesToInventoryDetail(item.id)
+                )
             }
         })
 
@@ -92,16 +92,16 @@ class FirstFragment : Fragment() {
      */
     override fun onResume() {
         super.onResume()
-        viewModel.loadIfNeeded()
+        viewModel.fetchIfNeeded()
     }
 
-    private fun render(state: InventoryListUiState) {
-        binding.progressBar.isVisible = state is InventoryListUiState.Loading
+    private fun render(state: InventoriesUiState) {
+        binding.progressBar.isVisible = state is InventoriesUiState.Loading
 
         when (state) {
-            is InventoryListUiState.Loading -> Unit
-            is InventoryListUiState.Loaded -> submitInventories(state.inventories)
-            is InventoryListUiState.Failed -> state.error?.let {
+            is InventoriesUiState.Loading -> Unit
+            is InventoriesUiState.Loaded -> submitInventories(state.inventories)
+            is InventoriesUiState.Failed -> state.error?.let {
                 showError(it)
                 // 表示済みにしないと、購読し直すたびに同じ Toast が出る
                 viewModel.onErrorShown()
@@ -132,13 +132,13 @@ class FirstFragment : Fragment() {
 
     /** 在庫データ作成画面を開く。レイアウトの android:onClick から呼ばれる。 */
     fun openAddInventory() {
-        addInventoryLauncher.launch(AddActivity.createIntent(requireContext()))
+        addInventoryLauncher.launch(CreateInventoryActivity.createIntent(requireContext()))
     }
 
     private fun showError(error: Throwable) {
         Toast.makeText(
             requireContext(),
-            getString(R.string.error_load_inventories, requireContext().messageOf(error)),
+            getString(R.string.error_load_inventories, requireContext().displayMessageOf(error)),
             Toast.LENGTH_LONG
         ).show()
     }
@@ -153,7 +153,7 @@ class FirstFragment : Fragment() {
 
 }
 
-val diff_util= object: DiffUtil.ItemCallback<Inventory>(){
+private val inventoryDiffCallback = object : DiffUtil.ItemCallback<Inventory>() {
     override fun areItemsTheSame(oldItem: Inventory, newItem: Inventory): Boolean
     {
         return oldItem.id == newItem.id
@@ -166,18 +166,18 @@ val diff_util= object: DiffUtil.ItemCallback<Inventory>(){
 
 }
 
-class MyAdapter(
+class InventoryAdapter(
     private val itemClickListener: OnItemClickListener,
-) : ListAdapter<Inventory, MyAdapter.ViewHolder>(diff_util) {
+) : ListAdapter<Inventory, InventoryAdapter.ViewHolder>(inventoryDiffCallback) {
 
-    class ViewHolder(val binding: FirstItemBinding) : RecyclerView.ViewHolder(binding.root)
+    class ViewHolder(val binding: ItemInventoryBinding) : RecyclerView.ViewHolder(binding.root)
 
     interface OnItemClickListener{
-        fun itemClick(item: Inventory)
+        fun onItemClick(item: Inventory)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) = ViewHolder(
-        FirstItemBinding.inflate(LayoutInflater.from(parent.context), parent, false)
+        ItemInventoryBinding.inflate(LayoutInflater.from(parent.context), parent, false)
     )
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {

@@ -7,13 +7,13 @@
 
         <variable
             name="fragment"
-            type="jp.co.zaico.codingtest.FirstFragment" />
+            type="jp.co.zaico.codingtest.InventoriesFragment" />
     </data>
 
     <androidx.coordinatorlayout.widget.CoordinatorLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        tools:context=".FirstFragment">
+        tools:context=".InventoriesFragment">
 
         <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="match_parent"
@@ -61,7 +61,7 @@
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toBottomOf="@id/searchBar"
-                tools:listitem="@layout/first_item" />
+                tools:listitem="@layout/item_inventory" />
 
             <ProgressBar
                 android:id="@+id/progressBar"
@@ -83,7 +83,7 @@
             android:layout_gravity="bottom|end"
             android:layout_marginEnd="@dimen/fab_margin"
             android:layout_marginBottom="16dp"
-            android:contentDescription="@string/fab_add_inventory_description"
+            android:contentDescription="@string/fab_create_inventory_description"
             android:onClick="@{() -> fragment.openAddInventory()}"
             app:srcCompat="@android:drawable/ic_input_add" />
 

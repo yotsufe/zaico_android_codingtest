@@ -11,22 +11,24 @@ import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import androidx.navigation.fragment.navArgs
 import dagger.hilt.android.AndroidEntryPoint
-import jp.co.zaico.codingtest.databinding.FragmentSecondBinding
+import jp.co.zaico.codingtest.databinding.FragmentInventoryDetailBinding
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
-class SecondFragment : Fragment() {
+class InventoryDetailFragment : Fragment() {
 
-    private val viewModel: SecondViewModel by viewModels()
-    private var _binding: FragmentSecondBinding? = null
+    private val args: InventoryDetailFragmentArgs by navArgs()
+    private val viewModel: InventoryDetailViewModel by viewModels()
+    private var _binding: FragmentInventoryDetailBinding? = null
     private val binding get() = checkNotNull(_binding)
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        val binding = FragmentSecondBinding.inflate(inflater, container, false)
+        val binding = FragmentInventoryDetailBinding.inflate(inflater, container, false)
         _binding = binding
         return binding.root
     }
@@ -34,15 +36,13 @@ class SecondFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        val inventoryId = requireArguments().getString("inventoryId")!!.toInt()
-
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.uiState.collect { render(it) }
             }
         }
 
-        viewModel.loadIfNeeded(inventoryId)
+        viewModel.fetchIfNeeded(args.inventoryId)
     }
 
     private fun render(state: InventoryDetailUiState) {
@@ -50,7 +50,7 @@ class SecondFragment : Fragment() {
 
         when (state) {
             is InventoryDetailUiState.Loading -> Unit
-            is InventoryDetailUiState.Loaded -> initView(state.inventory)
+            is InventoryDetailUiState.Loaded -> showInventory(state.inventory)
             is InventoryDetailUiState.Failed -> state.error?.let {
                 showError(it)
                 // 表示済みにしないと、購読し直すたびに同じ Toast が出る
@@ -59,16 +59,16 @@ class SecondFragment : Fragment() {
         }
     }
 
-    private fun initView(inventory: Inventory) {
-        binding.textViewId.text = inventory.id.toString()
-        binding.textViewTitle.text = inventory.title
-        binding.textViewQuantity.text = inventory.quantity
+    private fun showInventory(inventory: Inventory) {
+        binding.idText.text = inventory.id.toString()
+        binding.titleText.text = inventory.title
+        binding.quantityText.text = inventory.quantity
     }
 
     private fun showError(error: Throwable) {
         Toast.makeText(
             requireContext(),
-            getString(R.string.error_load_inventory, requireContext().messageOf(error)),
+            getString(R.string.error_load_inventory, requireContext().displayMessageOf(error)),
             Toast.LENGTH_LONG
         ).show()
     }

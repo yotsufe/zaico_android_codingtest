@@ -31,19 +31,19 @@ class ZaicoInventoryRepository(
     // ZaicoApi 側の company_id キャッシュはプロセス全体で共有されテスト間で漏れるため、
     // 解決処理そのものを差し替えられるようにしておく。
     private val companyIdProvider: suspend (HttpClient) -> Int = { client ->
-        ZaicoApi.companyId(client, endpoint)
+        ZaicoApi.resolveCompanyId(client, endpoint)
     },
 ) : InventoryRepository {
 
     override suspend fun getInventories(): List<Inventory> = withInventoriesPath { client, path ->
-        ZaicoApi.dataOf(ZaicoApi.getText(client, endpoint, path))
+        ZaicoApi.parseData(ZaicoApi.getRawBody(client, endpoint, path))
             .jsonArray
             .map { ZaicoApi.toInventory(it.jsonObject) }
     }
 
     override suspend fun getInventory(inventoryId: Int): Inventory = withInventoriesPath { client, path ->
-        val body = ZaicoApi.getText(client, endpoint, "${path.removeSuffix(".json")}/$inventoryId.json")
-        ZaicoApi.toInventory(ZaicoApi.dataOf(body).jsonObject)
+        val body = ZaicoApi.getRawBody(client, endpoint, "${path.removeSuffix(".json")}/$inventoryId.json")
+        ZaicoApi.toInventory(ZaicoApi.parseData(body).jsonObject)
     }
 
     override suspend fun createInventory(title: String) {
@@ -51,7 +51,7 @@ class ZaicoInventoryRepository(
             // 公開 API v2 ドキュメントの Inventories_create に準拠する。
             // 必須パラメータは title のみ。
             // ドキュメントの成功ステータスは 201 だが実機は 200 を返すため、2xx を成功として扱う。
-            ZaicoApi.postText(
+            ZaicoApi.postRawBody(
                 client = client,
                 endpoint = endpoint,
                 path = path,

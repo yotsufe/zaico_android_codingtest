@@ -27,66 +27,66 @@ class ZaicoApiTest {
     private fun clientOf(engine: MockEngine) = HttpClient(engine)
 
     @Test
-    fun `dataOf は data フィールドの中身を返す`() {
+    fun `parseData は data フィールドの中身を返す`() {
         val body = """{"data":[{"id":1,"title":"ねじ","quantity":"10"}]}"""
 
-        assertEquals(1, ZaicoApi.dataOf(body).jsonArray.size)
+        assertEquals(1, ZaicoApi.parseData(body).jsonArray.size)
     }
 
     @Test(expected = ApiException::class)
-    fun `dataOf は data が含まれていなければ ApiException を投げる`() {
-        ZaicoApi.dataOf("""{"message":"something went wrong"}""")
+    fun `parseData は data が含まれていなければ ApiException を投げる`() {
+        ZaicoApi.parseData("""{"message":"something went wrong"}""")
     }
 
     @Test
     fun `toInventory は id と title と quantity を写す`() {
-        val json = ZaicoApi.dataOf("""{"data":{"id":7,"title":"ねじ","quantity":"10"}}""").jsonObject
+        val json = ZaicoApi.parseData("""{"data":{"id":7,"title":"ねじ","quantity":"10"}}""").jsonObject
 
         assertEquals(Inventory(id = 7, title = "ねじ", quantity = "10"), ZaicoApi.toInventory(json))
     }
 
     @Test
     fun `toInventory は title が欠けていたら空文字にする`() {
-        val json = ZaicoApi.dataOf("""{"data":{"id":7,"quantity":"10"}}""").jsonObject
+        val json = ZaicoApi.parseData("""{"data":{"id":7,"quantity":"10"}}""").jsonObject
 
         assertEquals("", ZaicoApi.toInventory(json).title)
     }
 
     @Test
     fun `toInventory は quantity が欠けていたら空文字にする`() {
-        val json = ZaicoApi.dataOf("""{"data":{"id":7,"title":"ねじ"}}""").jsonObject
+        val json = ZaicoApi.parseData("""{"data":{"id":7,"title":"ねじ"}}""").jsonObject
 
         assertEquals("", ZaicoApi.toInventory(json).quantity)
     }
 
     @Test
-    fun `getText は baseUrl 末尾と path 先頭のスラッシュを重複させない`() = runTest {
+    fun `getRawBody は baseUrl 末尾と path 先頭のスラッシュを重複させない`() = runTest {
         var requestedUrl = ""
         val engine = MockEngine { request ->
             requestedUrl = request.url.toString()
             respond("""{"data":[]}""")
         }
 
-        ZaicoApi.getText(clientOf(engine), endpoint, "/api/v2/orgs/companies.json")
+        ZaicoApi.getRawBody(clientOf(engine), endpoint, "/api/v2/orgs/companies.json")
 
         assertEquals("https://example.test/api/v2/orgs/companies.json", requestedUrl)
     }
 
     @Test
-    fun `getText は Authorization ヘッダにトークンを付ける`() = runTest {
+    fun `getRawBody は Authorization ヘッダにトークンを付ける`() = runTest {
         var authorization: String? = null
         val engine = MockEngine { request ->
             authorization = request.headers[HttpHeaders.Authorization]
             respond("""{"data":[]}""")
         }
 
-        ZaicoApi.getText(clientOf(engine), endpoint, "/api/v2/orgs/companies.json")
+        ZaicoApi.getRawBody(clientOf(engine), endpoint, "/api/v2/orgs/companies.json")
 
         assertEquals("Bearer test-token", authorization)
     }
 
     @Test
-    fun `getText はエラーレスポンスの detail を ApiException のメッセージにする`() {
+    fun `getRawBody はエラーレスポンスの detail を ApiException のメッセージにする`() {
         // v2 のエラーは RFC 7807 Problem Details 形式。実機のレスポンスをそのまま使う。
         val engine = MockEngine {
             respond(
@@ -96,43 +96,43 @@ class ZaicoApiTest {
         }
 
         val error = assertThrows(ApiException::class.java) {
-            runBlocking { ZaicoApi.getText(clientOf(engine), endpoint, "/api/v2/x.json") }
+            runBlocking { ZaicoApi.getRawBody(clientOf(engine), endpoint, "/api/v2/x.json") }
         }
 
         assertEquals("認証トークンが無効または未指定です。", error.message)
     }
 
     @Test
-    fun `getText は detail が無ければ title を ApiException のメッセージにする`() {
+    fun `getRawBody は detail が無ければ title を ApiException のメッセージにする`() {
         val engine = MockEngine {
             respond("""{"title":"リクエストエラー","status":400}""", HttpStatusCode.BadRequest)
         }
 
         val error = assertThrows(ApiException::class.java) {
-            runBlocking { ZaicoApi.getText(clientOf(engine), endpoint, "/api/v2/x.json") }
+            runBlocking { ZaicoApi.getRawBody(clientOf(engine), endpoint, "/api/v2/x.json") }
         }
 
         assertEquals("リクエストエラー", error.message)
     }
 
     @Test
-    fun `getText は解析できない本文ならステータス文字列で ApiException を投げる`() {
+    fun `getRawBody は解析できない本文ならステータス文字列で ApiException を投げる`() {
         val engine = MockEngine { respond("oops", HttpStatusCode.InternalServerError) }
 
         val error = assertThrows(ApiException::class.java) {
-            runBlocking { ZaicoApi.getText(clientOf(engine), endpoint, "/api/v2/x.json") }
+            runBlocking { ZaicoApi.getRawBody(clientOf(engine), endpoint, "/api/v2/x.json") }
         }
 
         assertEquals(HttpStatusCode.InternalServerError.toString(), error.message)
     }
 
     @Test
-    fun `getText はトークンが空ならリクエストを送らずに ApiTokenMissingException を投げる`() {
+    fun `getRawBody はトークンが空ならリクエストを送らずに ApiTokenMissingException を投げる`() {
         val engine = MockEngine { respond("") }
 
         assertThrows(ApiTokenMissingException::class.java) {
             runBlocking {
-                ZaicoApi.getText(clientOf(engine), endpoint.copy(token = ""), "/api/v2/x.json")
+                ZaicoApi.getRawBody(clientOf(engine), endpoint.copy(token = ""), "/api/v2/x.json")
             }
         }
 
