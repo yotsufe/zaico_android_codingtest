@@ -29,9 +29,10 @@ class FirstFragment : Fragment() {
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
-        _binding = FragmentFirstBinding.inflate(inflater, container, false)
-        _binding!!.fragment = this
-        return _binding!!.root
+        val binding = FragmentFirstBinding.inflate(inflater, container, false)
+        binding.fragment = this
+        _binding = binding
+        return binding.root
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
