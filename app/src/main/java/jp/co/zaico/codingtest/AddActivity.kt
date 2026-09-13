@@ -68,6 +68,8 @@ class AddActivity : AppCompatActivity() {
             Toast.LENGTH_SHORT
         ).show()
         viewModel.onResultHandled()
+        // 一覧画面がこれを受けて読み込み直す
+        setResult(RESULT_OK)
         finish()
     }
 
