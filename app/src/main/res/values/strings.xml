@@ -1,15 +1,15 @@
 <resources>
     <string name="app_name">zaico codingtest</string>
-    <string name="first_fragment_label">在庫一覧</string>
-    <string name="second_fragment_label">在庫詳細</string>
+    <string name="inventories_label">在庫一覧</string>
+    <string name="inventory_detail_label">在庫詳細</string>
     <string name="error_load_inventories">在庫一覧を取得できませんでした: %1$s</string>
     <string name="error_load_inventory">在庫詳細を取得できませんでした: %1$s</string>
     <string name="error_api_token_missing">API トークンが設定されていません。local.properties に zaico.apiToken を設定してください。</string>
-    <string name="add_activity_label">在庫データ作成</string>
-    <string name="add_inventory_title_hint">タイトル</string>
-    <string name="add_inventory_save">登録</string>
+    <string name="create_inventory_label">在庫データ作成</string>
+    <string name="create_inventory_title_hint">タイトル</string>
+    <string name="create_inventory_save">登録</string>
     <string name="error_title_required">タイトルを入力してください</string>
     <string name="error_create_inventory">在庫データを作成できませんでした: %1$s</string>
     <string name="message_create_inventory_success">在庫データを作成しました</string>
-    <string name="fab_add_inventory_description">在庫データを作成する</string>
+    <string name="fab_create_inventory_description">在庫データを作成する</string>
 </resources>

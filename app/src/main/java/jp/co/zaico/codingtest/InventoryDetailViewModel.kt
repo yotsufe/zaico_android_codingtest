@@ -23,7 +23,7 @@ sealed interface InventoryDetailUiState {
     /**
      * 読み込みに失敗した。
      *
-     * [error] はまだ画面に出していないエラー。表示後に [SecondViewModel.onErrorShown] を
+     * [error] はまだ画面に出していないエラー。表示後に [InventoryDetailViewModel.onErrorShown] を
      * 呼ぶと null になる。StateFlow は最後の値を保持するため、消さないと購読し直すたびに
      * 同じ Toast が再表示される。
      */
@@ -32,7 +32,7 @@ sealed interface InventoryDetailUiState {
 
 /** 在庫詳細画面の ViewModel。 */
 @HiltViewModel
-class SecondViewModel @Inject constructor(
+class InventoryDetailViewModel @Inject constructor(
     private val repository: InventoryRepository,
 ) : ViewModel() {
 

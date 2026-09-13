@@ -7,7 +7,7 @@
 
         <variable
             name="viewModel"
-            type="jp.co.zaico.codingtest.AddViewModel" />
+            type="jp.co.zaico.codingtest.CreateInventoryViewModel" />
     </data>
 
     <androidx.coordinatorlayout.widget.CoordinatorLayout
@@ -15,7 +15,7 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:fitsSystemWindows="true"
-        tools:context=".AddActivity">
+        tools:context=".CreateInventoryActivity">
 
         <com.google.android.material.appbar.AppBarLayout
             android:layout_width="match_parent"
@@ -39,7 +39,7 @@
                 android:id="@+id/titleInputLayout"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:hint="@string/add_inventory_title_hint"
+                android:hint="@string/create_inventory_title_hint"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent">
@@ -61,7 +61,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="24dp"
                 android:onClick="@{() -> viewModel.createInventory(titleInputText.getText().toString())}"
-                android:text="@string/add_inventory_save"
+                android:text="@string/create_inventory_save"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toBottomOf="@id/titleInputLayout" />

@@ -3,27 +3,27 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/nav_graph"
-    app:startDestination="@id/FirstFragment">
+    app:startDestination="@id/inventoriesFragment">
 
     <fragment
-        android:id="@+id/FirstFragment"
-        android:name="jp.co.zaico.codingtest.FirstFragment"
-        android:label="@string/first_fragment_label"
-        tools:layout="@layout/fragment_first">
+        android:id="@+id/inventoriesFragment"
+        android:name="jp.co.zaico.codingtest.InventoriesFragment"
+        android:label="@string/inventories_label"
+        tools:layout="@layout/fragment_inventories">
 
         <action
-            android:id="@+id/action_FirstFragment_to_SecondFragment"
-            app:destination="@id/SecondFragment" />
+            android:id="@+id/action_inventories_to_inventoryDetail"
+            app:destination="@id/inventoryDetailFragment" />
     </fragment>
     <fragment
-        android:id="@+id/SecondFragment"
-        android:name="jp.co.zaico.codingtest.SecondFragment"
-        android:label="@string/second_fragment_label"
-        tools:layout="@layout/fragment_second">
+        android:id="@+id/inventoryDetailFragment"
+        android:name="jp.co.zaico.codingtest.InventoryDetailFragment"
+        android:label="@string/inventory_detail_label"
+        tools:layout="@layout/fragment_inventory_detail">
 
         <action
-            android:id="@+id/action_SecondFragment_to_FirstFragment"
-            app:destination="@id/FirstFragment" />
+            android:id="@+id/action_inventoryDetail_to_inventories"
+            app:destination="@id/inventoriesFragment" />
         <argument
             android:name="inventoryId"
             app:argType="string" />

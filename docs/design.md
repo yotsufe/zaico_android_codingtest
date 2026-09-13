@@ -10,7 +10,7 @@ zaico Android コーディングテストの設計方針を記録する。
 ## 構成
 
 ```
-AddActivity ──→ AddViewModel ──→ InventoryRepository (interface)
+CreateInventoryActivity ──→ CreateInventoryViewModel ──→ InventoryRepository (interface)
                                           │
                              ZaicoInventoryRepository (実装)
                                           │
@@ -71,7 +71,7 @@ UI がするのは、状態を受け取って描画することと、入力を�
 |---|---|---|
 | `ZaicoApi` | MockEngine | URL 組み立て、認証ヘッダ、ステータス判定、エラーメッセージ抽出、JSON 解析 |
 | `ZaicoInventoryRepository` | MockEngine | 作成リクエストの形（メソッド・パス・ボディ）、異常系の例外 |
-| `AddViewModel` | 手書き Fake | バリデーション、状態遷移 |
+| `CreateInventoryViewModel` | 手書き Fake | バリデーション、状態遷移 |
 
 **Activity / Fragment はテストしない。** 上記の責務分離により、UI 層にはテスト対象となる
 ロジックが存在しないため。

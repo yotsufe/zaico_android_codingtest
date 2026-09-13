@@ -12,32 +12,32 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /** 在庫一覧画面の状態。 */
-sealed interface InventoryListUiState {
+sealed interface InventoriesUiState {
 
     /** 読み込み中。 */
-    data object Loading : InventoryListUiState
+    data object Loading : InventoriesUiState
 
     /** 読み込みに成功した。 */
-    data class Loaded(val inventories: List<Inventory>) : InventoryListUiState
+    data class Loaded(val inventories: List<Inventory>) : InventoriesUiState
 
     /**
      * 読み込みに失敗した。
      *
-     * [error] はまだ画面に出していないエラー。表示後に [FirstViewModel.onErrorShown] を
+     * [error] はまだ画面に出していないエラー。表示後に [InventoriesViewModel.onErrorShown] を
      * 呼ぶと null になる。StateFlow は最後の値を保持するため、消さないと購読し直すたびに
      * 同じ Toast が再表示される。
      */
-    data class Failed(val error: Throwable?) : InventoryListUiState
+    data class Failed(val error: Throwable?) : InventoriesUiState
 }
 
 /** 在庫一覧画面の ViewModel。 */
 @HiltViewModel
-class FirstViewModel @Inject constructor(
+class InventoriesViewModel @Inject constructor(
     private val repository: InventoryRepository,
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow<InventoryListUiState>(InventoryListUiState.Loading)
-    val uiState: StateFlow<InventoryListUiState> = _uiState.asStateFlow()
+    private val _uiState = MutableStateFlow<InventoriesUiState>(InventoriesUiState.Loading)
+    val uiState: StateFlow<InventoriesUiState> = _uiState.asStateFlow()
 
     private var loadJob: Job? = null
 
@@ -48,7 +48,7 @@ class FirstViewModel @Inject constructor(
      * 他アプリからの復帰で無駄に API を叩かない。失敗したまま離れて戻った場合は再試行する。
      */
     fun loadIfNeeded() {
-        if (_uiState.value is InventoryListUiState.Loaded) return
+        if (_uiState.value is InventoriesUiState.Loaded) return
         if (loadJob?.isActive == true) return
         load()
     }
@@ -59,15 +59,15 @@ class FirstViewModel @Inject constructor(
         // 古い一覧が新しい一覧を上書きして、作成した在庫が消えて見える。
         loadJob?.cancel()
         loadJob = viewModelScope.launch {
-            _uiState.value = InventoryListUiState.Loading
+            _uiState.value = InventoriesUiState.Loading
             try {
-                _uiState.value = InventoryListUiState.Loaded(repository.getInventories())
+                _uiState.value = InventoriesUiState.Loaded(repository.getInventories())
             } catch (cancellation: CancellationException) {
                 // runCatching はキャンセルも捕まえてしまうため使わない。
                 // 打ち切りや画面破棄を「読み込み失敗」として表示しないように再送出する。
                 throw cancellation
             } catch (error: Exception) {
-                _uiState.value = InventoryListUiState.Failed(error)
+                _uiState.value = InventoriesUiState.Failed(error)
             }
         }
     }
@@ -75,8 +75,8 @@ class FirstViewModel @Inject constructor(
     /** エラーを表示し終えたことを通知する。同じエラーが再表示されないようにする。 */
     fun onErrorShown() {
         val state = _uiState.value
-        if (state is InventoryListUiState.Failed && state.error != null) {
-            _uiState.value = InventoryListUiState.Failed(null)
+        if (state is InventoriesUiState.Failed && state.error != null) {
+            _uiState.value = InventoriesUiState.Failed(null)
         }
     }
 

@@ -21,15 +21,15 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import dagger.hilt.android.AndroidEntryPoint
-import jp.co.zaico.codingtest.databinding.FirstItemBinding
-import jp.co.zaico.codingtest.databinding.FragmentFirstBinding
+import jp.co.zaico.codingtest.databinding.FragmentInventoriesBinding
+import jp.co.zaico.codingtest.databinding.ItemInventoryBinding
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
-class FirstFragment : Fragment() {
+class InventoriesFragment : Fragment() {
 
-    private val viewModel: FirstViewModel by viewModels()
-    private var _binding: FragmentFirstBinding? = null
+    private val viewModel: InventoriesViewModel by viewModels()
+    private var _binding: FragmentInventoriesBinding? = null
     private val binding get() = checkNotNull(_binding)
     private var adapter: InventoryAdapter? = null
 
@@ -54,7 +54,7 @@ class FirstFragment : Fragment() {
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
-        val binding = FragmentFirstBinding.inflate(inflater, container, false)
+        val binding = FragmentInventoriesBinding.inflate(inflater, container, false)
         binding.fragment = this
         _binding = binding
         return binding.root
@@ -67,7 +67,7 @@ class FirstFragment : Fragment() {
         adapter = InventoryAdapter(object : InventoryAdapter.OnItemClickListener {
             override fun onItemClick(item: Inventory) {
                 val bundle = bundleOf("inventoryId" to item.id.toString())
-                findNavController().navigate(R.id.action_FirstFragment_to_SecondFragment, bundle)
+                findNavController().navigate(R.id.action_inventories_to_inventoryDetail, bundle)
             }
         })
 
@@ -95,13 +95,13 @@ class FirstFragment : Fragment() {
         viewModel.loadIfNeeded()
     }
 
-    private fun render(state: InventoryListUiState) {
-        binding.progressBar.isVisible = state is InventoryListUiState.Loading
+    private fun render(state: InventoriesUiState) {
+        binding.progressBar.isVisible = state is InventoriesUiState.Loading
 
         when (state) {
-            is InventoryListUiState.Loading -> Unit
-            is InventoryListUiState.Loaded -> submitInventories(state.inventories)
-            is InventoryListUiState.Failed -> state.error?.let {
+            is InventoriesUiState.Loading -> Unit
+            is InventoriesUiState.Loaded -> submitInventories(state.inventories)
+            is InventoriesUiState.Failed -> state.error?.let {
                 showError(it)
                 // 表示済みにしないと、購読し直すたびに同じ Toast が出る
                 viewModel.onErrorShown()
@@ -132,7 +132,7 @@ class FirstFragment : Fragment() {
 
     /** 在庫データ作成画面を開く。レイアウトの android:onClick から呼ばれる。 */
     fun openAddInventory() {
-        addInventoryLauncher.launch(AddActivity.createIntent(requireContext()))
+        addInventoryLauncher.launch(CreateInventoryActivity.createIntent(requireContext()))
     }
 
     private fun showError(error: Throwable) {
@@ -170,14 +170,14 @@ class InventoryAdapter(
     private val itemClickListener: OnItemClickListener,
 ) : ListAdapter<Inventory, InventoryAdapter.ViewHolder>(inventoryDiffCallback) {
 
-    class ViewHolder(val binding: FirstItemBinding) : RecyclerView.ViewHolder(binding.root)
+    class ViewHolder(val binding: ItemInventoryBinding) : RecyclerView.ViewHolder(binding.root)
 
     interface OnItemClickListener{
         fun onItemClick(item: Inventory)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) = ViewHolder(
-        FirstItemBinding.inflate(LayoutInflater.from(parent.context), parent, false)
+        ItemInventoryBinding.inflate(LayoutInflater.from(parent.context), parent, false)
     )
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {

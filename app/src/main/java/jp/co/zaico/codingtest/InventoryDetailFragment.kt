@@ -12,21 +12,21 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import dagger.hilt.android.AndroidEntryPoint
-import jp.co.zaico.codingtest.databinding.FragmentSecondBinding
+import jp.co.zaico.codingtest.databinding.FragmentInventoryDetailBinding
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
-class SecondFragment : Fragment() {
+class InventoryDetailFragment : Fragment() {
 
-    private val viewModel: SecondViewModel by viewModels()
-    private var _binding: FragmentSecondBinding? = null
+    private val viewModel: InventoryDetailViewModel by viewModels()
+    private var _binding: FragmentInventoryDetailBinding? = null
     private val binding get() = checkNotNull(_binding)
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        val binding = FragmentSecondBinding.inflate(inflater, container, false)
+        val binding = FragmentInventoryDetailBinding.inflate(inflater, container, false)
         _binding = binding
         return binding.root
     }
