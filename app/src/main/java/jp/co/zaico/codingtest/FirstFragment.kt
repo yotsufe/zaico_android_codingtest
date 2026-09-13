@@ -31,7 +31,7 @@ class FirstFragment : Fragment() {
     private val viewModel: FirstViewModel by viewModels()
     private var _binding: FragmentFirstBinding? = null
     private val binding get() = checkNotNull(_binding)
-    private var adapter: MyAdapter? = null
+    private var adapter: InventoryAdapter? = null
 
     /** 一覧の先頭にある在庫の ID。差し替え時にスクロール位置を戻すかの判定に使う。 */
     private var topInventoryId: Int? = null
@@ -64,8 +64,8 @@ class FirstFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         val layoutManager = LinearLayoutManager(requireContext())
-        adapter = MyAdapter(object : MyAdapter.OnItemClickListener {
-            override fun itemClick(item: Inventory) {
+        adapter = InventoryAdapter(object : InventoryAdapter.OnItemClickListener {
+            override fun onItemClick(item: Inventory) {
                 val bundle = bundleOf("inventoryId" to item.id.toString())
                 findNavController().navigate(R.id.action_FirstFragment_to_SecondFragment, bundle)
             }
@@ -153,7 +153,7 @@ class FirstFragment : Fragment() {
 
 }
 
-val diff_util= object: DiffUtil.ItemCallback<Inventory>(){
+private val inventoryDiffCallback = object : DiffUtil.ItemCallback<Inventory>() {
     override fun areItemsTheSame(oldItem: Inventory, newItem: Inventory): Boolean
     {
         return oldItem.id == newItem.id
@@ -166,14 +166,14 @@ val diff_util= object: DiffUtil.ItemCallback<Inventory>(){
 
 }
 
-class MyAdapter(
+class InventoryAdapter(
     private val itemClickListener: OnItemClickListener,
-) : ListAdapter<Inventory, MyAdapter.ViewHolder>(diff_util) {
+) : ListAdapter<Inventory, InventoryAdapter.ViewHolder>(inventoryDiffCallback) {
 
     class ViewHolder(val binding: FirstItemBinding) : RecyclerView.ViewHolder(binding.root)
 
     interface OnItemClickListener{
-        fun itemClick(item: Inventory)
+        fun onItemClick(item: Inventory)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) = ViewHolder(

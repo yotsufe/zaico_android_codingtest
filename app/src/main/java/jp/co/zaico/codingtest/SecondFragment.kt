@@ -60,9 +60,9 @@ class SecondFragment : Fragment() {
     }
 
     private fun initView(inventory: Inventory) {
-        binding.textViewId.text = inventory.id.toString()
-        binding.textViewTitle.text = inventory.title
-        binding.textViewQuantity.text = inventory.quantity
+        binding.idText.text = inventory.id.toString()
+        binding.titleText.text = inventory.title
+        binding.quantityText.text = inventory.quantity
     }
 
     private fun showError(error: Throwable) {
