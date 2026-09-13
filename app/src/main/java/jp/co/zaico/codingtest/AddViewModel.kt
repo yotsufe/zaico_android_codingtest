@@ -2,11 +2,13 @@ package jp.co.zaico.codingtest
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 /**
  * 在庫データ作成画面の状態。
@@ -30,12 +32,9 @@ sealed interface AddUiState {
     data class Failed(val error: Throwable) : AddUiState
 }
 
-/**
- * 在庫データ作成画面の ViewModel。
- *
- * 通信は viewModelScope で実行するため、画面回転で Activity が再生成されても中断されない。
- */
-class AddViewModel(
+/** 在庫データ作成画面の ViewModel。 */
+@HiltViewModel
+class AddViewModel @Inject constructor(
     private val repository: InventoryRepository,
 ) : ViewModel() {
 

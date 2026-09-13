@@ -4,13 +4,13 @@ import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
+import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.isVisible
 import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import dagger.hilt.android.AndroidEntryPoint
 import jp.co.zaico.codingtest.databinding.ActivityAddBinding
 import kotlinx.coroutines.launch
 
@@ -19,10 +19,11 @@ import kotlinx.coroutines.launch
  *
  * 判断も通信も AddViewModel が持ち、この画面は入力を渡して状態を描画するだけに留めている。
  */
+@AndroidEntryPoint
 class AddActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityAddBinding
-    private lateinit var viewModel: AddViewModel
+    private val viewModel: AddViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -32,8 +33,6 @@ class AddActivity : AppCompatActivity() {
 
         setSupportActionBar(binding.toolbar)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
-
-        viewModel = ViewModelProvider(this, viewModelFactory())[AddViewModel::class.java]
 
         binding.saveButton.setOnClickListener {
             viewModel.createInventory(binding.titleInputText.text?.toString().orEmpty())
@@ -82,12 +81,6 @@ class AddActivity : AppCompatActivity() {
             Toast.LENGTH_LONG
         ).show()
         viewModel.onResultHandled()
-    }
-
-    private fun viewModelFactory() = object : ViewModelProvider.Factory {
-        @Suppress("UNCHECKED_CAST")
-        override fun <T : ViewModel> create(modelClass: Class<T>): T =
-            AddViewModel(ZaicoInventoryRepository.from(applicationContext)) as T
     }
 
     override fun onSupportNavigateUp(): Boolean {

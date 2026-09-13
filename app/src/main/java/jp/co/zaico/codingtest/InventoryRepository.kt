@@ -1,6 +1,5 @@
 package jp.co.zaico.codingtest
 
-import android.content.Context
 import io.ktor.client.HttpClient
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
@@ -42,9 +41,5 @@ class ZaicoInventoryRepository(
                 jsonBody = buildJsonObject { put("title", title) }.toString(),
             )
         }
-    }
-
-    companion object {
-        fun from(context: Context) = ZaicoInventoryRepository(ZaicoApiEndpoint.from(context))
     }
 }
