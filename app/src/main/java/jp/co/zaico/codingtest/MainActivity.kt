@@ -27,9 +27,6 @@ class MainActivity : AppCompatActivity() {
         appBarConfiguration = AppBarConfiguration(navController.graph)
         setupActionBarWithNavController(navController, appBarConfiguration)
 
-        binding.fab.setOnClickListener { view ->
-            startActivity(AddActivity.createIntent(this))
-        }
     }
 
     override fun onSupportNavigateUp(): Boolean {

@@ -16,6 +16,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import dagger.hilt.android.AndroidEntryPoint
+import jp.co.zaico.codingtest.databinding.FirstItemBinding
 import jp.co.zaico.codingtest.databinding.FragmentFirstBinding
 
 @AndroidEntryPoint
@@ -28,8 +29,10 @@ class FirstFragment : Fragment() {
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
-        _binding = FragmentFirstBinding.inflate(layoutInflater)
-        return _binding!!.root
+        val binding = FragmentFirstBinding.inflate(inflater, container, false)
+        binding.fragment = this
+        _binding = binding
+        return binding.root
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -59,6 +62,11 @@ class FirstFragment : Fragment() {
 
     }
 
+    /** 在庫データ作成画面を開く。レイアウトの android:onClick から呼ばれる。 */
+    fun openAddInventory() {
+        startActivity(AddActivity.createIntent(requireContext()))
+    }
+
     private fun showError(error: Throwable) {
         Toast.makeText(
             requireContext(),
@@ -86,28 +94,21 @@ class MyAdapter(
     private val itemClickListener: OnItemClickListener,
 ) : ListAdapter<Inventory, MyAdapter.ViewHolder>(diff_util) {
 
-    class ViewHolder(view: View): RecyclerView.ViewHolder(view)
+    class ViewHolder(val binding: FirstItemBinding) : RecyclerView.ViewHolder(binding.root)
 
     interface OnItemClickListener{
         fun itemClick(item: Inventory)
     }
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder
-    {
-        val _view= LayoutInflater.from(parent.context)
-            .inflate(R.layout.first_item, parent, false)
-        return ViewHolder(_view)
-    }
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) = ViewHolder(
+        FirstItemBinding.inflate(LayoutInflater.from(parent.context), parent, false)
+    )
 
-    override fun onBindViewHolder(holder: ViewHolder, position: Int)
-    {
-        val _item= getItem(position)
-        (holder.itemView.findViewById<View>(R.id.textView_id) as TextView).text = _item.id.toString()
-        (holder.itemView.findViewById<View>(R.id.textView_title) as TextView).text = _item.title
-
-        holder.itemView.setOnClickListener{
-            itemClickListener.itemClick(_item)
-        }
+    override fun onBindViewHolder(holder: ViewHolder, position: Int) {
+        holder.binding.inventory = getItem(position)
+        holder.binding.clickListener = itemClickListener
+        // RecyclerView の再利用で描画が 1 フレーム遅れるのを防ぐ
+        holder.binding.executePendingBindings()
     }
 
 }
