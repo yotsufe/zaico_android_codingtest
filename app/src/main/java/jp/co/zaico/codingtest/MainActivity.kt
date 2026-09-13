@@ -2,11 +2,12 @@ package jp.co.zaico.codingtest
 
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
-import dagger.hilt.android.AndroidEntryPoint
+import androidx.databinding.DataBindingUtil
 import androidx.navigation.findNavController
 import androidx.navigation.ui.AppBarConfiguration
 import androidx.navigation.ui.navigateUp
 import androidx.navigation.ui.setupActionBarWithNavController
+import dagger.hilt.android.AndroidEntryPoint
 import jp.co.zaico.codingtest.databinding.ActivityMainBinding
 
 @AndroidEntryPoint
@@ -18,8 +19,8 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        binding = ActivityMainBinding.inflate(layoutInflater)
-        setContentView(binding.root)
+        binding = DataBindingUtil.setContentView(this, R.layout.activity_main)
+        binding.activity = this
 
         setSupportActionBar(binding.toolbar)
 
@@ -27,9 +28,11 @@ class MainActivity : AppCompatActivity() {
         appBarConfiguration = AppBarConfiguration(navController.graph)
         setupActionBarWithNavController(navController, appBarConfiguration)
 
-        binding.fab.setOnClickListener { view ->
-            startActivity(AddActivity.createIntent(this))
-        }
+    }
+
+    /** 在庫データ作成画面を開く。レイアウトの android:onClick から呼ばれる。 */
+    fun openAddInventory() {
+        startActivity(AddActivity.createIntent(this))
     }
 
     override fun onSupportNavigateUp(): Boolean {
