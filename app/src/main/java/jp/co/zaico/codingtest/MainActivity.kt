@@ -2,7 +2,8 @@ package jp.co.zaico.codingtest
 
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
-import androidx.navigation.findNavController
+import androidx.navigation.NavController
+import androidx.navigation.fragment.NavHostFragment
 import androidx.navigation.ui.AppBarConfiguration
 import androidx.navigation.ui.navigateUp
 import androidx.navigation.ui.setupActionBarWithNavController
@@ -23,14 +24,22 @@ class MainActivity : AppCompatActivity() {
 
         setSupportActionBar(binding.toolbar)
 
-        val navController = findNavController(R.id.nav_host_fragment_content_main)
+        val navController = navController()
         appBarConfiguration = AppBarConfiguration(navController.graph)
         setupActionBarWithNavController(navController, appBarConfiguration)
     }
 
-    override fun onSupportNavigateUp(): Boolean {
-        val navController = findNavController(R.id.nav_host_fragment_content_main)
-        return navController.navigateUp(appBarConfiguration) ||
-            super.onSupportNavigateUp()
+    override fun onSupportNavigateUp(): Boolean = navController().navigateUp(appBarConfiguration) || super.onSupportNavigateUp()
+
+    /**
+     * ナビゲーションのホストから NavController を取り出す。
+     *
+     * レイアウトが FragmentContainerView なので `Activity.findNavController(viewId)` は使えない。
+     * NavHostFragment はビューの生成より後に FragmentManager が組み立てるため、
+     * onCreate の時点ではビューにコントローラが結び付いていない。
+     */
+    private fun navController(): NavController {
+        val host = supportFragmentManager.findFragmentById(R.id.nav_host_fragment_content_main)
+        return checkNotNull(host as? NavHostFragment).navController
     }
 }

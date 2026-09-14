@@ -15,6 +15,7 @@ import androidx.navigation.fragment.navArgs
 import dagger.hilt.android.AndroidEntryPoint
 import jp.co.zaico.codingtest.databinding.FragmentInventoryDetailBinding
 import kotlinx.coroutines.launch
+import java.util.Locale
 
 @AndroidEntryPoint
 class InventoryDetailFragment : Fragment() {
@@ -61,7 +62,7 @@ class InventoryDetailFragment : Fragment() {
     }
 
     private fun showInventory(inventory: Inventory) {
-        binding.idText.text = inventory.id.toString()
+        binding.idText.text = String.format(Locale.ROOT, "%d", inventory.id)
         binding.titleText.text = inventory.title
         binding.quantityText.text = inventory.quantity
     }

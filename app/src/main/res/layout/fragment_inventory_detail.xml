@@ -39,11 +39,16 @@
             android:background="#000000"
             />
 
+        <!--
+            在庫画像は今はプレースホルダだが、実画像を読み込む際に ImageView が必要になる。
+            compound drawable では URL から読み込んだ画像を扱えないため、この構成を残す。
+        -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginVertical="8dp"
-            android:orientation="horizontal">
+            android:orientation="horizontal"
+            tools:ignore="UseCompoundDrawables">
 
             <TextView
                 android:layout_width="wrap_content"
@@ -55,6 +60,7 @@
                 android:layout_width="64dp"
                 android:layout_height="64dp"
                 android:layout_marginStart="16dp"
+                android:contentDescription="@string/inventory_image_description"
                 android:src="@drawable/no_image" />
 
         </LinearLayout>

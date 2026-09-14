@@ -5,5 +5,9 @@
         <!-- <item name="colorPrimary">@color/my_light_primary</item> -->
     </style>
 
-    <style name="Theme.ZaicoCodingtest" parent="Base.Theme.ZaicoCodingtest" />
+    <style name="Theme.ZaicoCodingtest" parent="Base.Theme.ZaicoCodingtest">
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">?attr/isLightTheme</item>
+    </style>
 </resources>
