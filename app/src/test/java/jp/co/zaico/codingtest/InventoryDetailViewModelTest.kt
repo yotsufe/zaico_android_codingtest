@@ -37,13 +37,13 @@ class InventoryDetailViewModelTest {
 
     @Test
     fun `読み込み中は Loading のままで、完了すると Loaded になる`() = runTest {
-        val gate = CompletableDeferred<Unit>()
-        val viewModel = InventoryDetailViewModel(FakeInventoryRepository(inventory = inventory, gate = gate))
+        val latch = CompletableDeferred<Unit>()
+        val viewModel = InventoryDetailViewModel(FakeInventoryRepository(inventory = inventory, latch = latch))
 
         viewModel.fetchIfNeeded(7)
         assertEquals(InventoryDetailUiState.Loading, viewModel.uiState.value)
 
-        gate.complete(Unit)
+        latch.complete(Unit)
         assertEquals(InventoryDetailUiState.Loaded(inventory), viewModel.uiState.value)
     }
 
@@ -85,15 +85,15 @@ class InventoryDetailViewModelTest {
     @Test
     fun `fetchIfNeeded は読み込み中なら重ねて通信しない`() = runTest {
         // 読み込みが並走しないことは、このガードだけで保証している。
-        val gate = CompletableDeferred<Unit>()
-        val repository = FakeInventoryRepository(inventory = inventory, gate = gate)
+        val latch = CompletableDeferred<Unit>()
+        val repository = FakeInventoryRepository(inventory = inventory, latch = latch)
         val viewModel = InventoryDetailViewModel(repository)
 
         viewModel.fetchIfNeeded(7)
         viewModel.fetchIfNeeded(7)
 
         assertEquals(listOf(7), repository.requestedInventoryIds)
-        gate.complete(Unit)
+        latch.complete(Unit)
     }
 
     @Test

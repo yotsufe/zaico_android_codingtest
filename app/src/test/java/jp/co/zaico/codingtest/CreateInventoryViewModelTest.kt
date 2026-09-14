@@ -66,13 +66,13 @@ class CreateInventoryViewModelTest {
 
     @Test
     fun `作成中は Saving になり、完了すると Completed になる`() = runTest {
-        val gate = CompletableDeferred<Unit>()
-        val viewModel = CreateInventoryViewModel(FakeInventoryRepository(gate = gate))
+        val latch = CompletableDeferred<Unit>()
+        val viewModel = CreateInventoryViewModel(FakeInventoryRepository(latch = latch))
 
         viewModel.createInventory("ねじ")
         assertEquals(CreateInventoryUiState.Saving, viewModel.uiState.value)
 
-        gate.complete(Unit)
+        latch.complete(Unit)
         assertEquals(CreateInventoryUiState.Completed, viewModel.uiState.value)
     }
 
