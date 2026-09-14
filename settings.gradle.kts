@@ -21,4 +21,3 @@ dependencyResolutionManagement {
 
 rootProject.name = "zaico codingtest"
 include(":app")
- 

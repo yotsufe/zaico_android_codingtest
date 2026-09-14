@@ -25,8 +25,9 @@ class InventoryDetailFragment : Fragment() {
     private val binding get() = checkNotNull(_binding)
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
-        savedInstanceState: Bundle?
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?,
     ): View {
         val binding = FragmentInventoryDetailBinding.inflate(inflater, container, false)
         _binding = binding
@@ -69,7 +70,7 @@ class InventoryDetailFragment : Fragment() {
         Toast.makeText(
             requireContext(),
             getString(R.string.error_load_inventory, requireContext().displayMessageOf(error)),
-            Toast.LENGTH_LONG
+            Toast.LENGTH_LONG,
         ).show()
     }
 
@@ -77,5 +78,4 @@ class InventoryDetailFragment : Fragment() {
         super.onDestroyView()
         _binding = null
     }
-
 }

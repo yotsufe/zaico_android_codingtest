@@ -91,7 +91,7 @@ class ZaicoApiTest {
         val engine = MockEngine {
             respond(
                 """{"title":"認証エラー","status":401,"detail":"認証トークンが無効または未指定です。"}""",
-                HttpStatusCode.Unauthorized
+                HttpStatusCode.Unauthorized,
             )
         }
 

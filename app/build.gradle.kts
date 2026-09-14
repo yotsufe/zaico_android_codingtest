@@ -20,8 +20,7 @@ private val localProperties = Properties().apply {
     if (file.exists()) file.inputStream().use { load(it) }
 }
 
-fun localProperty(key: String, default: String = ""): String =
-    localProperties.getProperty(key, default)
+fun localProperty(key: String, default: String = ""): String = localProperties.getProperty(key, default)
 
 android {
     namespace = "jp.co.zaico.codingtest"
@@ -34,11 +33,10 @@ android {
         versionCode = 1
         versionName = "1.0.0"
 
-
         buildConfigField(
             "String",
             "ZAICO_API_TOKEN",
-            "\"${localProperty("zaico.apiToken")}\""
+            "\"${localProperty("zaico.apiToken")}\"",
         )
     }
 
@@ -47,7 +45,7 @@ android {
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
+                "proguard-rules.pro",
             )
         }
     }
@@ -93,5 +91,4 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
 
     implementation(libs.kotlinx.coroutines.android.v164)
-
 }

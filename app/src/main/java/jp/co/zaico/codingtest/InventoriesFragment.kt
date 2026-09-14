@@ -42,7 +42,7 @@ class InventoriesFragment : Fragment() {
      * 画面回転や通知を閉じただけでも API を叩いてしまう。
      */
     private val addInventoryLauncher = registerForActivityResult(
-        ActivityResultContracts.StartActivityForResult()
+        ActivityResultContracts.StartActivityForResult(),
     ) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
             viewModel.fetch()
@@ -50,8 +50,9 @@ class InventoriesFragment : Fragment() {
     }
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
-        savedInstanceState: Bundle?
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?,
     ): View? {
         val binding = FragmentInventoriesBinding.inflate(inflater, container, false)
         binding.fragment = this
@@ -66,7 +67,7 @@ class InventoriesFragment : Fragment() {
         adapter = InventoryAdapter(object : InventoryAdapter.OnItemClickListener {
             override fun onItemClick(item: Inventory) {
                 findNavController().navigate(
-                    InventoriesFragmentDirections.actionInventoriesToInventoryDetail(item.id)
+                    InventoriesFragmentDirections.actionInventoriesToInventoryDetail(item.id),
                 )
             }
         })
@@ -139,7 +140,7 @@ class InventoriesFragment : Fragment() {
         Toast.makeText(
             requireContext(),
             getString(R.string.error_load_inventories, requireContext().displayMessageOf(error)),
-            Toast.LENGTH_LONG
+            Toast.LENGTH_LONG,
         ).show()
     }
 
@@ -150,20 +151,12 @@ class InventoriesFragment : Fragment() {
         adapter = null
         _binding = null
     }
-
 }
 
 private val inventoryDiffCallback = object : DiffUtil.ItemCallback<Inventory>() {
-    override fun areItemsTheSame(oldItem: Inventory, newItem: Inventory): Boolean
-    {
-        return oldItem.id == newItem.id
-    }
+    override fun areItemsTheSame(oldItem: Inventory, newItem: Inventory): Boolean = oldItem.id == newItem.id
 
-    override fun areContentsTheSame(oldItem: Inventory, newItem: Inventory): Boolean
-    {
-        return oldItem== newItem
-    }
-
+    override fun areContentsTheSame(oldItem: Inventory, newItem: Inventory): Boolean = oldItem == newItem
 }
 
 class InventoryAdapter(
@@ -172,12 +165,12 @@ class InventoryAdapter(
 
     class ViewHolder(val binding: ItemInventoryBinding) : RecyclerView.ViewHolder(binding.root)
 
-    interface OnItemClickListener{
+    interface OnItemClickListener {
         fun onItemClick(item: Inventory)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) = ViewHolder(
-        ItemInventoryBinding.inflate(LayoutInflater.from(parent.context), parent, false)
+        ItemInventoryBinding.inflate(LayoutInflater.from(parent.context), parent, false),
     )
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
@@ -186,5 +179,4 @@ class InventoryAdapter(
         // RecyclerView の再利用で描画が 1 フレーム遅れるのを防ぐ
         holder.binding.executePendingBindings()
     }
-
 }

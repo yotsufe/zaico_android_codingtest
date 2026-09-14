@@ -27,12 +27,11 @@ class ZaicoInventoryRepositoryTest {
 
     private val endpoint = ZaicoApiEndpoint(baseUrl = "https://example.test/", token = "test-token")
 
-    private fun repositoryOf(engine: MockEngine, companyId: Int = 42) =
-        ZaicoInventoryRepository(
-            endpoint = endpoint,
-            httpClientFactory = { HttpClient(engine) },
-            companyIdProvider = { companyId },
-        )
+    private fun repositoryOf(engine: MockEngine, companyId: Int = 42) = ZaicoInventoryRepository(
+        endpoint = endpoint,
+        httpClientFactory = { HttpClient(engine) },
+        companyIdProvider = { companyId },
+    )
 
     @Test
     fun `createInventory は会社 ID を含む v2 のパスに JSON を POST する`() = runTest {
@@ -49,7 +48,7 @@ class ZaicoInventoryRepositoryTest {
         assertEquals(HttpMethod.Post, actual.method)
         assertEquals(
             "https://example.test/api/v2/orgs/companies/42/inventories.json",
-            actual.url.toString()
+            actual.url.toString(),
         )
         assertEquals("Bearer test-token", actual.headers[HttpHeaders.Authorization])
         assertEquals("""{"title":"ねじ"}""", (actual.body as TextContent).text)
@@ -77,7 +76,7 @@ class ZaicoInventoryRepositoryTest {
         val engine = MockEngine {
             respond(
                 """{"title":"リクエストエラー","status":400,"detail":"missing required parameters: title"}""",
-                HttpStatusCode.BadRequest
+                HttpStatusCode.BadRequest,
             )
         }
 
@@ -131,7 +130,10 @@ class ZaicoInventoryRepositoryTest {
         val repository = ZaicoInventoryRepository(
             endpoint = endpoint,
             httpClientFactory = { HttpClient(engine) },
-            companyIdProvider = { companyIdCalls++; 42 },
+            companyIdProvider = {
+                companyIdCalls++
+                42
+            },
         )
 
         repository.createInventory("ねじ")
@@ -152,7 +154,7 @@ class ZaicoInventoryRepositoryTest {
 
         assertEquals(
             "https://example.test/api/v2/orgs/companies/42/inventories.json",
-            requestedUrl
+            requestedUrl,
         )
         assertEquals(listOf(Inventory(1, "ねじ", "10"), Inventory(2, "ばね", "")), inventories)
     }
@@ -176,7 +178,7 @@ class ZaicoInventoryRepositoryTest {
 
         assertEquals(
             "https://example.test/api/v2/orgs/companies/42/inventories/7.json",
-            requestedUrl
+            requestedUrl,
         )
         assertEquals(Inventory(7, "ねじ", "10"), inventory)
     }
@@ -184,8 +186,10 @@ class ZaicoInventoryRepositoryTest {
     @Test
     fun `getInventories はエラーステータスなら ApiException を投げる`() {
         val engine = MockEngine {
-            respond("""{"title":"認証エラー","status":401,"detail":"トークンが無効です。"}""",
-                HttpStatusCode.Unauthorized)
+            respond(
+                """{"title":"認証エラー","status":401,"detail":"トークンが無効です。"}""",
+                HttpStatusCode.Unauthorized,
+            )
         }
 
         val error = assertThrows(ApiException::class.java) {

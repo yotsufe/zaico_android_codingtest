@@ -65,7 +65,7 @@ class CreateInventoryActivity : AppCompatActivity() {
         Toast.makeText(
             this,
             getString(R.string.message_create_inventory_success),
-            Toast.LENGTH_SHORT
+            Toast.LENGTH_SHORT,
         ).show()
         viewModel.onResultHandled()
         // 一覧画面がこれを受けて読み込み直す
@@ -77,7 +77,7 @@ class CreateInventoryActivity : AppCompatActivity() {
         Toast.makeText(
             this,
             getString(R.string.error_create_inventory, displayMessageOf(error)),
-            Toast.LENGTH_LONG
+            Toast.LENGTH_LONG,
         ).show()
         viewModel.onResultHandled()
     }
@@ -90,5 +90,4 @@ class CreateInventoryActivity : AppCompatActivity() {
     companion object {
         fun createIntent(context: Context) = Intent(context, CreateInventoryActivity::class.java)
     }
-
 }

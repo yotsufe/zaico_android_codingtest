@@ -79,5 +79,4 @@ class InventoriesViewModel @Inject constructor(
             _uiState.value = InventoriesUiState.Failed(null)
         }
     }
-
 }

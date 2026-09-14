@@ -6,5 +6,5 @@ import kotlinx.serialization.Serializable
 data class Inventory(
     val id: Int,
     val title: String,
-    val quantity: String
+    val quantity: String,
 )

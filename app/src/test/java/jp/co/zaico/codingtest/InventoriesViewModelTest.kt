@@ -48,7 +48,7 @@ class InventoriesViewModelTest {
     @Test
     fun `読み込みに失敗したら例外を持つ Failed になる`() = runTest {
         val viewModel = InventoriesViewModel(
-            FakeInventoryRepository(failure = ApiException("トークンが無効です。"))
+            FakeInventoryRepository(failure = ApiException("トークンが無効です。")),
         )
 
         viewModel.fetch()
@@ -74,7 +74,7 @@ class InventoriesViewModelTest {
         // runCatching は CancellationException も捕まえてしまうため、
         // キャンセルが「読み込み失敗」として画面に出ないことを保証する。
         val viewModel = InventoriesViewModel(
-            FakeInventoryRepository(failure = CancellationException("cancelled"))
+            FakeInventoryRepository(failure = CancellationException("cancelled")),
         )
 
         viewModel.fetch()
@@ -89,14 +89,14 @@ class InventoriesViewModelTest {
         val repository = SlowRepository()
         val viewModel = InventoriesViewModel(repository)
 
-        viewModel.fetch()   // 1 本目（古い）
-        viewModel.fetch()   // 2 本目（新しい）
+        viewModel.fetch() // 1 本目（古い）
+        viewModel.fetch() // 2 本目（新しい）
 
         val stale = listOf(Inventory(1, "古い一覧", "1"))
         val fresh = listOf(Inventory(2, "作成した在庫", "1"))
 
-        repository.gates[1].complete(fresh)   // 新しい方が先に返る
-        repository.gates[0].complete(stale)   // 古い方が後に返る
+        repository.gates[1].complete(fresh) // 新しい方が先に返る
+        repository.gates[0].complete(stale) // 古い方が後に返る
 
         assertEquals(InventoriesUiState.Loaded(fresh), viewModel.uiState.value)
     }
@@ -139,7 +139,7 @@ class InventoriesViewModelTest {
     @Test
     fun `onErrorShown を呼ぶと同じエラーを二度通知しない`() = runTest {
         val viewModel = InventoriesViewModel(
-            FakeInventoryRepository(failure = ApiException("圏外です。"))
+            FakeInventoryRepository(failure = ApiException("圏外です。")),
         )
 
         viewModel.fetch()
