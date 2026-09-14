@@ -2,8 +2,6 @@ package jp.co.zaico.codingtest
 
 import io.ktor.client.HttpClient
 import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.jsonArray
-import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.put
 
 /** 在庫データの窓口。ViewModel はこの interface にだけ依存する。 */
@@ -36,14 +34,13 @@ class ZaicoInventoryRepository(
 ) : InventoryRepository {
 
     override suspend fun getInventories(): List<Inventory> = withInventoriesPath { client, path ->
-        ZaicoApi.parseData(ZaicoApi.getRawBody(client, endpoint, path))
-            .jsonArray
-            .map { ZaicoApi.toInventory(it.jsonObject) }
+        ZaicoApi.parseDataAsArray(ZaicoApi.getRawBody(client, endpoint, path))
+            .map { ZaicoApi.toInventory(it) }
     }
 
     override suspend fun getInventory(inventoryId: Int): Inventory = withInventoriesPath { client, path ->
         val body = ZaicoApi.getRawBody(client, endpoint, "${path.removeSuffix(".json")}/$inventoryId.json")
-        ZaicoApi.toInventory(ZaicoApi.parseData(body).jsonObject)
+        ZaicoApi.toInventory(ZaicoApi.parseDataAsObject(body))
     }
 
     override suspend fun createInventory(title: String) {
