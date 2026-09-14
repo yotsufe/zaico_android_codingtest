@@ -98,16 +98,33 @@ class InventoriesFragment : Fragment() {
 
     private fun render(state: InventoriesUiState) {
         binding.progressBar.isVisible = state is InventoriesUiState.Loading
+        // 可視・不可視は毎回ここで決める。Loaded の分岐の中だけで切り替えると、
+        // 0 件のあと Loading や Failed になったときに「在庫データがありません」が残る。
+        binding.emptyText.isVisible = state is InventoriesUiState.Loaded && state.isEmpty
 
         when (state) {
             is InventoriesUiState.Loading -> Unit
-            is InventoriesUiState.Loaded -> submitInventories(state.inventories)
+            is InventoriesUiState.Loaded -> showInventories(state)
             is InventoriesUiState.Failed -> state.error?.let {
                 showError(it)
                 // 表示済みにしないと、購読し直すたびに同じ Toast が出る
                 viewModel.onErrorShown()
             }
         }
+    }
+
+    private fun showInventories(state: InventoriesUiState.Loaded) {
+        if (state.hasUnshownSkipped) {
+            // 黙って件数を減らすと在庫が欠けたことに気づけないため、読み飛ばしたことを伝える。
+            Toast.makeText(
+                requireContext(),
+                getString(R.string.inventories_skipped, state.skipped),
+                Toast.LENGTH_LONG,
+            ).show()
+            // 表示済みにしないと、購読し直すたびに同じ Toast が出る
+            viewModel.onSkippedShown()
+        }
+        submitInventories(state.inventories)
     }
 
     /**

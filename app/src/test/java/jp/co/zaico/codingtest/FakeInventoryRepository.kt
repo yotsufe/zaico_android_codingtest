@@ -6,13 +6,14 @@ import kotlinx.coroutines.CompletableDeferred
  * テスト用の InventoryRepository。
  *
  * 呼ばれた内容を記録し、[failure] が指定されていればそれを投げる。
- * [gate] を渡すと complete されるまで作成処理が中断するので、処理中の状態を検証できる。
+ * [gate] を渡すと complete されるまで全メソッドが中断するので、処理中の状態を検証できる。
  */
 class FakeInventoryRepository(
     private val inventories: List<Inventory> = emptyList(),
     private val inventory: Inventory = Inventory(id = 0, title = "", quantity = ""),
     private val failure: Throwable? = null,
     private val gate: CompletableDeferred<Unit>? = null,
+    private val skipped: Int = 0,
 ) : InventoryRepository {
 
     val createdTitles = mutableListOf<String>()
@@ -20,11 +21,11 @@ class FakeInventoryRepository(
     var getInventoriesCallCount = 0
         private set
 
-    override suspend fun getInventories(): List<Inventory> {
+    override suspend fun getInventories(): Inventories {
         getInventoriesCallCount++
         gate?.await()
         failure?.let { throw it }
-        return inventories
+        return Inventories(items = inventories, skipped = skipped)
     }
 
     override suspend fun getInventory(inventoryId: Int): Inventory {

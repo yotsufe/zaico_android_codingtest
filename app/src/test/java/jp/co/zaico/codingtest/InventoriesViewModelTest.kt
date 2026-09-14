@@ -5,6 +5,7 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -31,6 +32,40 @@ class InventoriesViewModelTest {
         viewModel.fetch()
 
         assertEquals(InventoriesUiState.Loaded(inventories), viewModel.uiState.value)
+    }
+
+    @Test
+    fun `読み飛ばした件数を Loaded に持たせる`() = runTest {
+        val viewModel = InventoriesViewModel(FakeInventoryRepository(inventories, skipped = 2))
+
+        viewModel.fetch()
+
+        assertEquals(InventoriesUiState.Loaded(inventories, skipped = 2), viewModel.uiState.value)
+    }
+
+    @Test
+    fun `在庫が 0 件なら isEmpty になる`() = runTest {
+        val viewModel = InventoriesViewModel(FakeInventoryRepository(emptyList()))
+
+        viewModel.fetch()
+
+        val state = viewModel.uiState.value as InventoriesUiState.Loaded
+        assertTrue(state.isEmpty)
+        assertFalse(state.hasUnshownSkipped)
+    }
+
+    @Test
+    fun `onSkippedShown を呼ぶと同じ読み飛ばしを二度通知しない`() = runTest {
+        val viewModel = InventoriesViewModel(FakeInventoryRepository(inventories, skipped = 2))
+
+        viewModel.fetch()
+        assertTrue((viewModel.uiState.value as InventoriesUiState.Loaded).hasUnshownSkipped)
+
+        viewModel.onSkippedShown()
+
+        val state = viewModel.uiState.value as InventoriesUiState.Loaded
+        assertFalse(state.hasUnshownSkipped)
+        assertEquals(inventories, state.inventories)
     }
 
     @Test
@@ -152,10 +187,10 @@ class InventoriesViewModelTest {
     private class SlowRepository : InventoryRepository {
         val gates = mutableListOf<CompletableDeferred<List<Inventory>>>()
 
-        override suspend fun getInventories(): List<Inventory> {
+        override suspend fun getInventories(): Inventories {
             val gate = CompletableDeferred<List<Inventory>>()
             gates += gate
-            return gate.await()
+            return Inventories(items = gate.await(), skipped = 0)
         }
 
         override suspend fun getInventory(inventoryId: Int): Inventory = error("未使用")

@@ -8,7 +8,7 @@ import kotlinx.serialization.json.put
 interface InventoryRepository {
 
     /** 在庫一覧を取得する。失敗時は例外を投げる。 */
-    suspend fun getInventories(): List<Inventory>
+    suspend fun getInventories(): Inventories
 
     /** 在庫詳細を取得する。失敗時は例外を投げる。 */
     suspend fun getInventory(inventoryId: Int): Inventory
@@ -33,9 +33,20 @@ class ZaicoInventoryRepository(
     },
 ) : InventoryRepository {
 
-    override suspend fun getInventories(): List<Inventory> = withInventoriesBasePath { client, base ->
-        ZaicoApi.parseDataAsArray(ZaicoApi.getRawBody(client, endpoint, "$base.json"))
-            .map { ZaicoApi.toInventory(it) }
+    override suspend fun getInventories(): Inventories = withInventoriesBasePath { client, base ->
+        val elements = ZaicoApi.parseDataAsArray(ZaicoApi.getRawBody(client, endpoint, "$base.json"))
+        // 1 件でも形が違えば全件を失うのは避ける。ただし黙って減らすと在庫が欠けたことに
+        // 気づけないため、読み飛ばした件数を呼び出し側へ渡す。
+        val items = elements.mapNotNull {
+            // ApiException に絞る。runCatching だと実装ミス由来の例外まで
+            // 「形が違う 1 件」として無言で読み飛ばしてしまう。
+            try {
+                ZaicoApi.toInventory(it)
+            } catch (e: ApiException) {
+                null
+            }
+        }
+        Inventories(items = items, skipped = elements.size - items.size)
     }
 
     override suspend fun getInventory(inventoryId: Int): Inventory = withInventoriesBasePath { client, base ->
