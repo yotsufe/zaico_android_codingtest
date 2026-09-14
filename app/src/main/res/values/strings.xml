@@ -12,7 +12,11 @@
     <string name="error_create_inventory">在庫データを作成できませんでした: %1$s</string>
     <string name="message_create_inventory_success">在庫データを作成しました</string>
     <string name="fab_create_inventory_description">在庫データを作成する</string>
-    <string name="inventory_image_description">在庫画像</string>
+    <string name="inventory_detail_id">ID</string>
+    <string name="inventory_detail_image">在庫画像</string>
+    <string name="inventory_image_none">画像なし</string>
+    <string name="inventory_detail_title">タイトル</string>
+    <string name="inventory_detail_quantity">数量</string>
     <string name="inventories_empty">在庫データがありません</string>
     <string name="inventories_skipped">%1$d 件の在庫データを読み取れませんでした</string>
 </resources>
