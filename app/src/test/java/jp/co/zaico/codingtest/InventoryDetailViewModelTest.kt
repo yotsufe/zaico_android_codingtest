@@ -63,7 +63,7 @@ class InventoryDetailViewModelTest {
         // runCatching は CancellationException も捕まえてしまうため、
         // キャンセルが「読み込み失敗」として画面に出ないことを保証する。
         val viewModel = InventoryDetailViewModel(
-            FakeInventoryRepository(failure = CancellationException("cancelled"))
+            FakeInventoryRepository(failure = CancellationException("cancelled")),
         )
 
         viewModel.fetchIfNeeded(7)

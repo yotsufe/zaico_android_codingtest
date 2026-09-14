@@ -79,7 +79,7 @@ class CreateInventoryViewModelTest {
     @Test
     fun `作成に失敗したら例外を持つ Failed になる`() = runTest {
         val viewModel = CreateInventoryViewModel(
-            FakeInventoryRepository(failure = ApiException("Title can't be blank"))
+            FakeInventoryRepository(failure = ApiException("Title can't be blank")),
         )
 
         viewModel.createInventory("ねじ")
@@ -104,7 +104,7 @@ class CreateInventoryViewModelTest {
         // runCatching は CancellationException も捕まえてしまうため、
         // キャンセルが「作成失敗」として画面に出ないことを保証する。
         val viewModel = CreateInventoryViewModel(
-            FakeInventoryRepository(failure = CancellationException("cancelled"))
+            FakeInventoryRepository(failure = CancellationException("cancelled")),
         )
 
         viewModel.createInventory("ねじ")

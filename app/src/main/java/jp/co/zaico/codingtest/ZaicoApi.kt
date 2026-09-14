@@ -102,8 +102,7 @@ object ZaicoApi {
     }
 
     /** 在庫エンドポイントのパスに必要な company_id を返す（初回のみ API を呼ぶ）。 */
-    suspend fun resolveCompanyId(client: HttpClient, endpoint: ZaicoApiEndpoint): Int =
-        cachedCompanyId ?: fetchCompanyId(client, endpoint).also { cachedCompanyId = it }
+    suspend fun resolveCompanyId(client: HttpClient, endpoint: ZaicoApiEndpoint): Int = cachedCompanyId ?: fetchCompanyId(client, endpoint).also { cachedCompanyId = it }
 
     /**
      * キャッシュを通さずに company_id を取得する。
@@ -121,14 +120,13 @@ object ZaicoApi {
     }
 
     /** v2 のレスポンスは {"data": ...} で包まれているので、その中身を取り出す。 */
-    fun parseData(body: String): JsonElement =
-        json.parseToJsonElement(body).jsonObject["data"]
-            ?: throw ApiException("レスポンスに data が含まれていません")
+    fun parseData(body: String): JsonElement = json.parseToJsonElement(body).jsonObject["data"]
+        ?: throw ApiException("レスポンスに data が含まれていません")
 
     fun toInventory(json: JsonObject) = Inventory(
         id = json["id"]!!.jsonPrimitive.int,
         title = json["title"]?.jsonPrimitive?.contentOrNull.orEmpty(),
-        quantity = json["quantity"]?.jsonPrimitive?.contentOrNull.orEmpty()
+        quantity = json["quantity"]?.jsonPrimitive?.contentOrNull.orEmpty(),
     )
 
     /**
@@ -143,5 +141,4 @@ object ZaicoApi {
         error["detail"]?.jsonPrimitive?.contentOrNull
             ?: error["title"]?.jsonPrimitive?.contentOrNull
     }.getOrNull()
-
 }

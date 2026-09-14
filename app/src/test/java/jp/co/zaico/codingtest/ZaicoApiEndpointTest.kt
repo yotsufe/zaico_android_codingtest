@@ -13,7 +13,7 @@ class ZaicoApiEndpointTest {
 
         assertEquals(
             "https://example.test/api/v2/orgs/companies.json",
-            endpoint.urlOf("/api/v2/orgs/companies.json")
+            endpoint.urlOf("/api/v2/orgs/companies.json"),
         )
     }
 

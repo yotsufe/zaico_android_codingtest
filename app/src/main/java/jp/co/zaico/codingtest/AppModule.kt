@@ -15,8 +15,7 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideZaicoApiEndpoint(@ApplicationContext context: Context): ZaicoApiEndpoint =
-        ZaicoApiEndpoint.from(context)
+    fun provideZaicoApiEndpoint(@ApplicationContext context: Context): ZaicoApiEndpoint = ZaicoApiEndpoint.from(context)
 
     /**
      * Dagger は Kotlin のデフォルト引数を解釈しないため、`@Binds` ではなくここで組み立てる。
@@ -26,6 +25,5 @@ object AppModule {
      */
     @Provides
     @Singleton
-    fun provideInventoryRepository(endpoint: ZaicoApiEndpoint): InventoryRepository =
-        ZaicoInventoryRepository(endpoint)
+    fun provideInventoryRepository(endpoint: ZaicoApiEndpoint): InventoryRepository = ZaicoInventoryRepository(endpoint)
 }

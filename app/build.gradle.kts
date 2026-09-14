@@ -6,7 +6,12 @@ plugins {
     alias(libs.plugins.kotlin.kapt)
     alias(libs.plugins.hilt.android)
     alias(libs.plugins.androidx.navigation.safeargs)
+    alias(libs.plugins.ktlint)
     kotlin("plugin.serialization") version "1.5.31"
+}
+
+ktlint {
+    version.set(libs.versions.ktlint)
 }
 
 // local.properties はバージョン管理対象外。API トークンなどの秘密情報はここから読む。
@@ -15,8 +20,7 @@ private val localProperties = Properties().apply {
     if (file.exists()) file.inputStream().use { load(it) }
 }
 
-fun localProperty(key: String, default: String = ""): String =
-    localProperties.getProperty(key, default)
+fun localProperty(key: String, default: String = ""): String = localProperties.getProperty(key, default)
 
 android {
     namespace = "jp.co.zaico.codingtest"
@@ -29,12 +33,10 @@ android {
         versionCode = 1
         versionName = "1.0.0"
 
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-
         buildConfigField(
             "String",
             "ZAICO_API_TOKEN",
-            "\"${localProperty("zaico.apiToken")}\""
+            "\"${localProperty("zaico.apiToken")}\"",
         )
     }
 
@@ -43,7 +45,7 @@ android {
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
+                "proguard-rules.pro",
             )
         }
     }
@@ -81,8 +83,6 @@ dependencies {
     testImplementation(libs.junit)
     testImplementation(libs.ktor.client.mock)
     testImplementation(libs.kotlinx.coroutines.test)
-    androidTestImplementation(libs.androidx.junit)
-    androidTestImplementation(libs.androidx.espresso.core)
 
     implementation(libs.ktor.client.core)
     implementation(libs.ktor.client.android)
@@ -91,5 +91,4 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
 
     implementation(libs.kotlinx.coroutines.android.v164)
-
 }

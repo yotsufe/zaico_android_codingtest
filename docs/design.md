@@ -129,3 +129,29 @@ POST /api/v2/orgs/companies/{company_id}/inventories.json
 `detail` を優先し、無ければ `title` を表示する。
 
 リクエストの形（メソッド・パス・ボディ）はテストで文字列として固定してある。
+
+## コードスタイル
+
+**書式は ktlint で機械的に揃える。** 静的解析としては detekt もあるが、
+detekt が扱う複雑度や潜在バグはしきい値の調整が前提になる。この規模では調整の手間のほうが大きい。
+バグ検出は Android Lint が見る範囲に留め、**書式だけを ktlint で強制する**。
+
+**コードスタイルは `intellij_idea` を選ぶ。** ktlint の既定は `ktlint_official` だが、
+公式ドキュメント自身が「IntelliJ IDEA と Android Studio の既定フォーマッタが受け付けない整形をする
+場合がある」「このコードスタイルを使うならエディタの整形機能は無効にするのが最善」と述べている。
+エディタの整形を封じる運用は取らない。
+
+`android_studio` ではなく `intellij_idea` にしたのは次の理由による。
+
+- `intellij_idea` は Kotlin Coding conventions に基づく。`gradle.properties` で宣言している
+  `kotlin.code.style=official` と対応する
+- `android_studio` は既存コードの末尾カンマをすべて削除する。本プロジェクトは一貫して
+  末尾カンマを使っており、削除するとパラメータを 1 つ足すたびに差分が 2 行になる
+- 本プロジェクトの import 順序が `intellij_idea` の既定レイアウトと一致している
+
+**`backing-property-naming` だけ無効化する。** Fragment の ViewBinding は `_binding` と
+private な getter の組で扱うが、このルールはバッキングプロパティに対応する公開プロパティを要求する。
+Android 公式ドキュメントの作法を優先した。
+
+**ktlint 本体のバージョンは明示的に固定する。** Gradle プラグインのパッチ更新で既定値が
+変わりうるため、固定しないとルールが黙って変わる。
