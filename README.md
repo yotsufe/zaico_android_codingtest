@@ -78,6 +78,13 @@ JVM 上で完結します（実機・API トークン不要）。通信は Ktor 
 
 `./gradlew check` からも実行されます。
 
+書式を一括整形したコミットは `.git-blame-ignore-revs` に登録してあります。
+`git blame` から除外するには、クローンごとに一度だけ次を実行してください（GitHub 上では自動で適用されます）。
+
+```bash
+git config blame.ignoreRevsFile .git-blame-ignore-revs
+```
+
 ### 動作確認済の開発環境
 
 - IDE：Android Studio Ladybug Feature Drop | 2024.2.2 Patch 1

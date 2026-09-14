@@ -1,0 +1,8 @@
+# 書式のみを変更したコミット。git blame から除外する。
+#
+# 有効にするには、クローンごとに一度だけ次を実行する。
+#   git config blame.ignoreRevsFile .git-blame-ignore-revs
+# GitHub 上では自動で適用される。
+
+# style: ktlintFormat を適用する
+b13057c419a2ee3661f27c92b1d7a7298043c25c
