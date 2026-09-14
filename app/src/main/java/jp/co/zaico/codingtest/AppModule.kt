@@ -20,10 +20,13 @@ object AppModule {
     /**
      * Dagger は Kotlin のデフォルト引数を解釈しないため、`@Binds` ではなくここで組み立てる。
      *
-     * `ZaicoInventoryRepository` の `httpClientFactory` / `companyIdProvider` は
-     * テスト用の差し替え口で、本番に対応する束縛が存在しない。
+     * `ZaicoInventoryRepository` の `httpClientFactory` はテスト用の差し替え口で、
+     * 本番に対応する束縛が存在しない。
      */
     @Provides
     @Singleton
-    fun provideInventoryRepository(endpoint: ZaicoApiEndpoint): InventoryRepository = ZaicoInventoryRepository(endpoint)
+    fun provideInventoryRepository(
+        endpoint: ZaicoApiEndpoint,
+        companyIdProvider: CompanyIdProvider,
+    ): InventoryRepository = ZaicoInventoryRepository(endpoint, companyIdProvider)
 }

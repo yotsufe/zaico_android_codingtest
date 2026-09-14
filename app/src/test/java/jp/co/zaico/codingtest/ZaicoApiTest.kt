@@ -8,8 +8,6 @@ import io.ktor.http.HttpStatusCode
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
-import kotlinx.serialization.json.jsonArray
-import kotlinx.serialization.json.jsonObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Test
@@ -27,43 +25,43 @@ class ZaicoApiTest {
     private fun clientOf(engine: MockEngine) = HttpClient(engine)
 
     @Test
-    fun `parseData は data フィールドの中身を返す`() {
+    fun `parseDataAsArray は data の配列を返す`() {
         val body = """{"data":[{"id":1,"title":"ねじ","quantity":"10"}]}"""
 
-        assertEquals(1, ZaicoApi.parseData(body).jsonArray.size)
+        assertEquals(1, ZaicoApi.parseDataAsArray(body).size)
     }
 
     @Test
     fun `toInventory は id と title と quantity を写す`() {
-        val json = ZaicoApi.parseData("""{"data":{"id":7,"title":"ねじ","quantity":"10"}}""").jsonObject
+        val json = ZaicoApi.parseDataAsObject("""{"data":{"id":7,"title":"ねじ","quantity":"10"}}""")
 
         assertEquals(Inventory(id = 7, title = "ねじ", quantity = "10"), ZaicoApi.toInventory(json))
     }
 
     @Test
     fun `toInventory は title が欠けていたら空文字にする`() {
-        val json = ZaicoApi.parseData("""{"data":{"id":7,"quantity":"10"}}""").jsonObject
+        val json = ZaicoApi.parseDataAsObject("""{"data":{"id":7,"quantity":"10"}}""")
 
         assertEquals("", ZaicoApi.toInventory(json).title)
     }
 
     @Test
     fun `toInventory は quantity が欠けていたら空文字にする`() {
-        val json = ZaicoApi.parseData("""{"data":{"id":7,"title":"ねじ"}}""").jsonObject
+        val json = ZaicoApi.parseDataAsObject("""{"data":{"id":7,"title":"ねじ"}}""")
 
         assertEquals("", ZaicoApi.toInventory(json).quantity)
     }
 
     @Test
-    fun `parseData は JSON として解釈できない本文なら ApiException を投げる`() {
-        val error = assertThrows(ApiException::class.java) { ZaicoApi.parseData("not json") }
+    fun `JSON として解釈できない本文なら ApiException を投げる`() {
+        val error = assertThrows(ApiException::class.java) { ZaicoApi.parseDataAsArray("not json") }
 
         assertEquals("レスポンスを JSON として解釈できませんでした", error.message)
     }
 
     @Test
-    fun `parseData は本文がオブジェクトでなければ ApiException を投げる`() {
-        val error = assertThrows(ApiException::class.java) { ZaicoApi.parseData("[1,2,3]") }
+    fun `本文がオブジェクトでなければ ApiException を投げる`() {
+        val error = assertThrows(ApiException::class.java) { ZaicoApi.parseDataAsArray("[1,2,3]") }
 
         assertEquals("レスポンスがオブジェクトではありません", error.message)
     }
@@ -121,9 +119,9 @@ class ZaicoApiTest {
     }
 
     @Test
-    fun `parseData は data が含まれていなければ ApiException を投げる`() {
+    fun `data が含まれていなければ ApiException を投げる`() {
         val error = assertThrows(ApiException::class.java) {
-            ZaicoApi.parseData("""{"message":"something went wrong"}""")
+            ZaicoApi.parseDataAsArray("""{"message":"something went wrong"}""")
         }
 
         assertEquals("レスポンスに data が含まれていません", error.message)
@@ -143,28 +141,6 @@ class ZaicoApiTest {
         val json = ZaicoApi.parseDataAsObject("""{"data":{"id":"7"}}""")
 
         assertEquals(7, ZaicoApi.toInventory(json).id)
-    }
-
-    @Test
-    fun `fetchCompanyId は会社がオブジェクトでなければ ApiException を投げる`() {
-        val engine = MockEngine { respond("""{"data":[1]}""") }
-
-        val error = assertThrows(ApiException::class.java) {
-            runTest { ZaicoApi.fetchCompanyId(clientOf(engine), endpoint) }
-        }
-
-        assertEquals("会社がオブジェクトではありません", error.message)
-    }
-
-    @Test
-    fun `fetchCompanyId は会社に id が無ければ ApiException を投げる`() {
-        val engine = MockEngine { respond("""{"data":[{"name":"zaico"}]}""") }
-
-        val error = assertThrows(ApiException::class.java) {
-            runTest { ZaicoApi.fetchCompanyId(clientOf(engine), endpoint) }
-        }
-
-        assertEquals("idが含まれていません", error.message)
     }
 
     @Test
@@ -245,23 +221,5 @@ class ZaicoApiTest {
         }
 
         assertEquals(0, engine.requestHistory.size)
-    }
-
-    @Test
-    fun `fetchCompanyId は先頭の会社の id を返す`() = runTest {
-        val engine = MockEngine { respond("""{"data":[{"id":42},{"id":99}]}""") }
-
-        assertEquals(42, ZaicoApi.fetchCompanyId(clientOf(engine), endpoint))
-    }
-
-    @Test
-    fun `fetchCompanyId は会社が 0 件なら ApiException を投げる`() {
-        val engine = MockEngine { respond("""{"data":[]}""") }
-
-        val error = assertThrows(ApiException::class.java) {
-            runBlocking { ZaicoApi.fetchCompanyId(clientOf(engine), endpoint) }
-        }
-
-        assertEquals("利用可能な会社が見つかりませんでした", error.message)
     }
 }

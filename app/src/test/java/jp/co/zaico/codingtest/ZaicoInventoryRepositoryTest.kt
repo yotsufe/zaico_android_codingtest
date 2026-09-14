@@ -2,6 +2,7 @@ package jp.co.zaico.codingtest
 
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.mock.MockEngine
+import io.ktor.client.engine.mock.MockRequestHandler
 import io.ktor.client.engine.mock.respond
 import io.ktor.client.request.HttpRequestData
 import io.ktor.http.HttpHeaders
@@ -27,16 +28,31 @@ class ZaicoInventoryRepositoryTest {
 
     private val endpoint = ZaicoApiEndpoint(baseUrl = "https://example.test/", token = "test-token")
 
-    private fun repositoryOf(engine: MockEngine, companyId: Int = 42) = ZaicoInventoryRepository(
+    private fun repositoryOf(engine: MockEngine) = ZaicoInventoryRepository(
         endpoint = endpoint,
+        companyIdProvider = CompanyIdProvider(endpoint),
         httpClientFactory = { HttpClient(engine) },
-        companyIdProvider = { companyId },
     )
+
+    /**
+     * company_id の取得だけ先に応答し、残りを [handler] に任せる。
+     *
+     * CompanyIdProvider を実物のまま通すため、在庫のリクエストの前に会社一覧が 1 回飛ぶ。
+     */
+    private fun engineOf(companyId: Int = 42, handler: MockRequestHandler) = MockEngine { request ->
+        // CompanyIdProvider が叩くパス。変えるとこの分岐が外れ、在庫用の応答が
+        // 会社一覧に返って原因の分かりにくい失敗になる。
+        if (request.url.encodedPath.endsWith("/orgs/companies.json")) {
+            respond("""{"data":[{"id":$companyId}]}""")
+        } else {
+            handler(this, request)
+        }
+    }
 
     @Test
     fun `createInventory は会社 ID を含む v2 のパスに JSON を POST する`() = runTest {
         var request: HttpRequestData? = null
-        val engine = MockEngine {
+        val engine = engineOf {
             request = it
             // 実機のレスポンス形式（一部抜粋）。作成結果は使わないが、現実の形で固定しておく。
             respond("""{"data":{"id":74107958,"title":"ねじ","quantity":null}}""")
@@ -56,7 +72,7 @@ class ZaicoInventoryRepositoryTest {
 
     @Test
     fun `createInventory は 200 でレスポンス本文が想定外でも成功する`() = runTest {
-        val engine = MockEngine {
+        val engine = engineOf {
             respond("""{"code":200,"status":"success","data_id":123}""")
         }
 
@@ -65,7 +81,7 @@ class ZaicoInventoryRepositoryTest {
 
     @Test
     fun `createInventory は 201 でも成功する`() = runTest {
-        val engine = MockEngine { respond("", HttpStatusCode.Created) }
+        val engine = engineOf { respond("", HttpStatusCode.Created) }
 
         repositoryOf(engine).createInventory("ねじ")
     }
@@ -73,7 +89,7 @@ class ZaicoInventoryRepositoryTest {
     @Test
     fun `createInventory は 400 ならエラーレスポンスの detail を持つ ApiException を投げる`() {
         // 実機で title を省いて POST したときのレスポンス。
-        val engine = MockEngine {
+        val engine = engineOf {
             respond(
                 """{"title":"リクエストエラー","status":400,"detail":"missing required parameters: title"}""",
                 HttpStatusCode.BadRequest,
@@ -89,7 +105,7 @@ class ZaicoInventoryRepositoryTest {
 
     @Test
     fun `createInventory は解析できないエラー本文ならステータスを message にする`() {
-        val engine = MockEngine { respond("oops", HttpStatusCode.InternalServerError) }
+        val engine = engineOf { respond("oops", HttpStatusCode.InternalServerError) }
 
         val error = assertThrows(ApiException::class.java) {
             runBlocking { repositoryOf(engine).createInventory("ねじ") }
@@ -99,12 +115,13 @@ class ZaicoInventoryRepositoryTest {
     }
 
     @Test
-    fun `createInventory はトークンが空ならリクエストを送らずに ApiTokenMissingException を投げる`() {
-        val engine = MockEngine { respond("") }
+    fun `トークンが空なら company_id の取得も含め一切通信しない`() {
+        val engine = engineOf { respond("") }
+        val tokenless = endpoint.copy(token = "")
         val repository = ZaicoInventoryRepository(
-            endpoint = endpoint.copy(token = ""),
+            endpoint = tokenless,
+            companyIdProvider = CompanyIdProvider(tokenless),
             httpClientFactory = { HttpClient(engine) },
-            companyIdProvider = { 42 },
         )
 
         assertThrows(ApiTokenMissingException::class.java) {
@@ -116,7 +133,7 @@ class ZaicoInventoryRepositoryTest {
 
     @Test
     fun `createInventory は通信に失敗したら例外を伝える`() {
-        val engine = MockEngine { throw IOException("network down") }
+        val engine = engineOf { throw IOException("network down") }
 
         assertThrows(IOException::class.java) {
             runBlocking { repositoryOf(engine).createInventory("ねじ") }
@@ -125,27 +142,34 @@ class ZaicoInventoryRepositoryTest {
 
     @Test
     fun `createInventory は会社 ID を 1 回だけ取得してから POST する`() = runTest {
-        var companyIdCalls = 0
-        val engine = MockEngine { respond("""{"data":{"id":1}}""") }
+        var companyRequests = 0
+        val engine = MockEngine { request ->
+            // CompanyIdProvider が叩くパス。変えるとこの分岐が外れ、在庫用の応答が
+            // 会社一覧に返って原因の分かりにくい失敗になる。
+            if (request.url.encodedPath.endsWith("/orgs/companies.json")) {
+                companyRequests++
+                respond("""{"data":[{"id":42}]}""")
+            } else {
+                respond("""{"data":{"id":1}}""")
+            }
+        }
         val repository = ZaicoInventoryRepository(
             endpoint = endpoint,
+            companyIdProvider = CompanyIdProvider(endpoint),
             httpClientFactory = { HttpClient(engine) },
-            companyIdProvider = {
-                companyIdCalls++
-                42
-            },
         )
 
         repository.createInventory("ねじ")
+        repository.createInventory("ばね")
 
-        assertEquals(1, companyIdCalls)
-        assertEquals(1, engine.requestHistory.size)
+        // 2 回作成しても会社一覧は 1 回しか叩かない（CompanyIdProvider が保持する）
+        assertEquals(1, companyRequests)
     }
 
     @Test
     fun `getInventories は一覧エンドポイントから在庫を読み取る`() = runTest {
         var requestedUrl = ""
-        val engine = MockEngine {
+        val engine = engineOf {
             requestedUrl = it.url.toString()
             respond("""{"data":[{"id":1,"title":"ねじ","quantity":"10"},{"id":2,"title":"ばね"}]}""")
         }
@@ -163,7 +187,7 @@ class ZaicoInventoryRepositoryTest {
     @Test
     fun `getInventories は形が想定と違う在庫を読み飛ばし、件数を返す`() = runTest {
         // 1 件でも不正なら全件を失う、という挙動を避ける。ただし黙って減らさない。
-        val engine = MockEngine {
+        val engine = engineOf {
             respond("""{"data":[{"id":1,"title":"ねじ"},{"title":"id が無い"},"文字列"]}""")
         }
 
@@ -175,7 +199,7 @@ class ZaicoInventoryRepositoryTest {
 
     @Test
     fun `getInventories は在庫が 0 件なら空のリストを返す`() = runTest {
-        val engine = MockEngine { respond("""{"data":[]}""") }
+        val engine = engineOf { respond("""{"data":[]}""") }
 
         val inventories = repositoryOf(engine).getInventories()
 
@@ -186,7 +210,7 @@ class ZaicoInventoryRepositoryTest {
     @Test
     fun `getInventory は在庫 ID を含むパスから 1 件を読み取る`() = runTest {
         var requestedUrl = ""
-        val engine = MockEngine {
+        val engine = engineOf {
             requestedUrl = it.url.toString()
             respond("""{"data":{"id":7,"title":"ねじ","quantity":"10"}}""")
         }
@@ -202,7 +226,7 @@ class ZaicoInventoryRepositoryTest {
 
     @Test
     fun `getInventories はエラーステータスなら ApiException を投げる`() {
-        val engine = MockEngine {
+        val engine = engineOf {
             respond(
                 """{"title":"認証エラー","status":401,"detail":"トークンが無効です。"}""",
                 HttpStatusCode.Unauthorized,
