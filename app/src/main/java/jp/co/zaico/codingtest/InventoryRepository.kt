@@ -33,35 +33,40 @@ class ZaicoInventoryRepository(
     },
 ) : InventoryRepository {
 
-    override suspend fun getInventories(): List<Inventory> = withInventoriesPath { client, path ->
-        ZaicoApi.parseDataAsArray(ZaicoApi.getRawBody(client, endpoint, path))
+    override suspend fun getInventories(): List<Inventory> = withInventoriesBasePath { client, base ->
+        ZaicoApi.parseDataAsArray(ZaicoApi.getRawBody(client, endpoint, "$base.json"))
             .map { ZaicoApi.toInventory(it) }
     }
 
-    override suspend fun getInventory(inventoryId: Int): Inventory = withInventoriesPath { client, path ->
-        val body = ZaicoApi.getRawBody(client, endpoint, "${path.removeSuffix(".json")}/$inventoryId.json")
+    override suspend fun getInventory(inventoryId: Int): Inventory = withInventoriesBasePath { client, base ->
+        val body = ZaicoApi.getRawBody(client, endpoint, "$base/$inventoryId.json")
         ZaicoApi.toInventory(ZaicoApi.parseDataAsObject(body))
     }
 
     override suspend fun createInventory(title: String) {
-        withInventoriesPath { client, path ->
+        withInventoriesBasePath { client, base ->
             // 公開 API v2 ドキュメントの Inventories_create に準拠する。
             // 必須パラメータは title のみ。
             // ドキュメントの成功ステータスは 201 だが実機は 200 を返すため、2xx を成功として扱う。
             ZaicoApi.postRawBody(
                 client = client,
                 endpoint = endpoint,
-                path = path,
+                path = "$base.json",
                 jsonBody = buildJsonObject { put("title", title) }.toString(),
             )
         }
     }
 
-    /** クライアントの生成・解放と company_id の解決をまとめる。3 つの操作すべてが必要とするため。 */
-    private suspend fun <T> withInventoriesPath(
+    /**
+     * クライアントの生成・解放と company_id の解決をまとめる。3 つの操作すべてが必要とするため。
+     *
+     * 渡すのは拡張子を付ける前のベースパス。一覧と作成は `.json` を、詳細は `/<id>.json` を足す。
+     * ここで `.json` まで付けると、詳細取得だけが剥がして付け直すことになる。
+     */
+    private suspend fun <T> withInventoriesBasePath(
         block: suspend (HttpClient, String) -> T,
     ): T = httpClientFactory().use { client ->
         val companyId = companyIdProvider(client)
-        block(client, "/api/v2/orgs/companies/$companyId/inventories.json")
+        block(client, "/api/v2/orgs/companies/$companyId/inventories")
     }
 }
