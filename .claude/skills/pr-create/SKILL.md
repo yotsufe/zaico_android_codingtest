@@ -57,6 +57,8 @@ git checkout main && git pull && git checkout -b <branch>
 | 拒否されるもの | 対応する手順 |
 |---|---|
 | `--force` / `-f` / `--force-with-lease` つきの `git push` | §7 |
+| **peer-review を通していないブランチの `git push` / `gh pr create`** | **§2** |
+| detached HEAD からの `git push`（ブランチ名でマーカーを引けないため） | **§2** |
 | 秘密情報を含むコミットの `git push` | §4-1 / §7-1 |
 
 `main` への直接コミットは hook では止めない。ブランチ先行は §3 の手順で扱う
@@ -110,6 +112,19 @@ gh auth status
 
 このセッションで実行済みかどうかを確信できないなら、**実行する**。
 重複実行のコストより、未レビューのままコミットするリスクのほうが大きい。
+
+**これは hook で強制される。** `.claude/peer-review/<ブランチ名の / を ~ にしたもの>` が
+無いと `git push` も `gh pr create` も拒否される。飛ばすならユーザーに確認したうえで、
+理由をマーカーに記録すること（黙って飛ばさない）。
+
+**ブランチを切り直す・改名するときはマーカーも持ち越す。** マーカーはブランチ名で引くので、
+§3 ケース2（`main` 上でレビューしてからブランチを切る）やケース3、`git branch -m` の後は
+そのままだと §7 の push で拒否される。
+
+```bash
+mv ".claude/peer-review/$(git symbolic-ref -q --short HEAD | tr '/' '~')" \
+   ".claude/peer-review/<新しいブランチ名の / を ~ にしたもの>"
+```
 
 `peer-review` は指摘を反映したうえで返す。判断を仰ぐ指摘（設計の選択を伴うもの）が
 含まれていたら、ユーザーに決めてもらってから §3 へ進む。

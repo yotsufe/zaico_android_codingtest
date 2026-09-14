@@ -2,8 +2,9 @@
 # PreToolUse(Bash) フック。git push / gh pr create のときだけ内容を検査する。
 #
 #   1. force push を拒否する
-#   2. まだ push していないコミットが触ったファイルに秘密情報が無いか調べる
-#   3. gh pr create / gh pr edit に渡す本文に秘密情報が無いか調べる
+#   2. peer-review を通していないブランチの push / PR 作成を拒否する
+#   3. まだ push していないコミットが触ったファイルに秘密情報が無いか調べる
+#   4. gh pr create / gh pr edit に渡す本文に秘密情報が無いか調べる
 #
 # 標準入力に {"tool_input":{"command":"..."}} が渡る。
 # 拒否するときだけ permissionDecision: deny を出力し、それ以外は何も出力しない。
@@ -11,6 +12,9 @@
 # ■ 限界（これは最後の砦であって、完全な防壁ではない）
 #   シェルコマンドを正規表現で読むだけなので、変数展開（g=push; git $g）や
 #   多段のインタプリタ経由は原理的に検知できない。
+#   サブシェル（cd x && git push を括弧でくくった形）も同様に取りこぼす。
+#   断片への分割が改行と ; | & しか見ないため、断片が "git push)" になって
+#   判定に一致しない。塞ぐには実際のシェル構文解析が要る。
 #   手順書（.claude/skills/pr-create/SKILL.md）側の検証を省略しないこと。
 
 set -uo pipefail
@@ -52,8 +56,10 @@ is_git_sub() {
   printf '%s' "$1" | /usr/bin/grep -qE "^\\\\?([^[:space:]]*/)?git$GITOPT[[:space:]]+$2([[:space:]]|\$)"
 }
 
-PUSHING=0
-GH_PR=0
+PUSHING=0        # レビュー対象になる push（ブランチ削除は含めない）
+PUSH_ANY=0       # push であること自体（force 判定と秘密情報スキャン用）
+GH_PR=0          # gh pr create / edit（本文の秘密情報スキャン用）
+GH_PR_CREATE=0   # gh pr create だけ（peer-review の判定用）
 BODY_FILE=""
 
 # コマンドを ; && || | 改行 で区切り、断片ごとに先頭の語を見る。
@@ -65,7 +71,13 @@ while IFS= read -r seg || [ -n "$seg" ]; do
   [ -z "$bare" ] && continue
 
   if is_git_sub "$bare" push; then
-    PUSHING=1
+    PUSH_ANY=1
+    # ブランチやタグの削除はレビューの対象ではないので、マーカーを要求しない
+    if printf '%s' "$bare" | /usr/bin/grep -qE '(^|[[:space:]])(--delete|-d)([=[:space:]]|$)'; then
+      :
+    else
+      PUSHING=1
+    fi
     # --- 1. force push の禁止 ---
     # 判定は push の断片の中だけで行う。-fu のような結合形も拾う。
     if printf '%s' "$bare" | /usr/bin/grep -qE '(^|[[:space:]])(-[A-Za-z]*f[A-Za-z]*|--force([-=][A-Za-z-]*)?)([=[:space:]]|$)'; then
@@ -79,15 +91,56 @@ while IFS= read -r seg || [ -n "$seg" ]; do
 
   if printf '%s' "$bare" | /usr/bin/grep -qE '^([^[:space:]]*/)?gh[[:space:]]+pr[[:space:]]+(create|edit)([[:space:]]|$)'; then
     GH_PR=1
-    BODY_FILE=$(printf '%s' "$bare" | sed -nE 's/.*--body-file[=[:space:]]+([^[:space:]]+).*/\1/p')
+    printf '%s' "$bare" | /usr/bin/grep -qE '^([^[:space:]]*/)?gh[[:space:]]+pr[[:space:]]+create([[:space:]]|$)' && GH_PR_CREATE=1
+    # -F は --body-file の短縮形。片方だけ見ると、もう片方の本文が無検査で PR に載る。
+    BODY_FILE=$(printf '%s' "$bare" | sed -nE 's/.*[[:space:]](--body-file|-F)[=[:space:]]+([^[:space:]]+).*/\2/p')
   fi
 done <<EOF
 $(printf '%s' "$CMD" | tr '\n;|&' '\n\n\n\n')
 EOF
 
-[ "$PUSHING" = "1" ] || [ "$GH_PR" = "1" ] || exit 0
+[ "$PUSH_ANY" = "1" ] || [ "$GH_PR" = "1" ] || exit 0
 
-# --- 2. 秘密情報のパターン ---------------------------------------------
+# --- 2. peer-review を通したか ------------------------------------------
+# peer-review Skill が最後に書くマーカーを見る。無ければ push も PR 作成も止める。
+# 「レビューを飛ばしたことに気づかないまま PR を出す」のを防ぐのが目的。
+#
+# 古いマーカーの掃除はここでは行わない。検査用のフックが副作用でファイルを消すと、
+# deny するだけの場合でも状態が変わり、`SKIPPED:` の記録（＝唯一の監査証跡）まで
+# 失われる。掃除は peer-review Skill の管轄。
+#
+# ■ 限界
+#   マーカーを手で書けば通る。レビューを本当にやったかまでは検証できない。
+#   防げるのは「黙って飛ばす」ことであって、「意図的に迂回する」ことではない。
+if [ "$PUSHING" = "1" ] || [ "$GH_PR_CREATE" = "1" ]; then
+  if git rev-parse --git-dir >/dev/null 2>&1; then
+    # symbolic-ref は detached のとき空を返す。--abbrev-ref の "HEAD" という
+    # 文字列との比較に頼らずに済む。
+    BRANCH=$(git symbolic-ref -q --short HEAD 2>/dev/null) || BRANCH=""
+    if [ -z "$BRANCH" ]; then
+      deny "detached HEAD では peer-review の実施を確認できません。マーカーはブランチ名で引くためです。ブランチを切ってから push してください。"
+    fi
+    # / は ~ に置き換える。git はブランチ名に ~ を許さないので、_ と違って
+    # feat/x と feat_x が同じファイル名に潰れる衝突が起きない。
+    MARKER_DIR="$ROOT/.claude/peer-review"
+    MARKER="$MARKER_DIR/$(printf '%s' "$BRANCH" | tr '/' '~')"
+    if [ ! -f "$MARKER" ]; then
+      deny "このブランチ（${BRANCH}）は peer-review を通していません。
+
+push と PR 作成の前に peer-review Skill を実行してください。実装した本人による
+自己レビューは、自分の判断を正当化する方向に偏ります。
+
+ブランチを切り直した・改名した直後であれば、前の名前のマーカーを持ち越してください。
+
+飛ばす場合は、ユーザーに確認したうえで理由を記録してください。
+
+  mkdir -p '${MARKER_DIR}'
+  echo 'SKIPPED: <理由。ユーザーの了承を得たことを含める>' > '${MARKER}'"
+    fi
+  fi
+fi
+
+# --- 3. 秘密情報のパターン ---------------------------------------------
 # 値は「数字を 1 つ以上含む 12 文字以上」に限定する。数字を要求しないと
 # passwordInputField / YOUR_API_KEY_HERE のような識別子やプレースホルダに
 # 誤検知する（実測で確認済み）。
@@ -128,7 +181,7 @@ report() {
 $1"
 }
 
-# --- 3. PR 本文の検査 ---------------------------------------------------
+# --- 4. PR 本文の検査 ---------------------------------------------------
 if [ "$GH_PR" = "1" ]; then
   if printf '%s' "$CMD" | /usr/bin/grep -qiE "$PATTERNS"; then
     report "gh コマンドに渡された PR 本文"
@@ -138,11 +191,9 @@ if [ "$GH_PR" = "1" ]; then
   fi
 fi
 
-[ "$PUSHING" = "1" ] || exit 0
-
-# --- 4. push されるコミットの検査 ---------------------------------------
+# --- 5. push されるコミットの検査 ---------------------------------------
+[ "$PUSH_ANY" = "1" ] || exit 0
 git rev-parse --git-dir >/dev/null 2>&1 || exit 0
-
 # まだどのリモートにも無いコミット＝これから push される分。
 # main..HEAD だと main 上での push を検査できず、push 対象 ref ともずれる。
 REVS=$(git rev-list HEAD --not --remotes 2>/dev/null)
