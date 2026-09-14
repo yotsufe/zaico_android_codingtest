@@ -156,14 +156,31 @@ class ZaicoInventoryRepositoryTest {
             "https://example.test/api/v2/orgs/companies/42/inventories.json",
             requestedUrl,
         )
-        assertEquals(listOf(Inventory(1, "ねじ", "10"), Inventory(2, "ばね", "")), inventories)
+        assertEquals(listOf(Inventory(1, "ねじ", "10"), Inventory(2, "ばね", "")), inventories.items)
+        assertEquals(0, inventories.skipped)
+    }
+
+    @Test
+    fun `getInventories は形が想定と違う在庫を読み飛ばし、件数を返す`() = runTest {
+        // 1 件でも不正なら全件を失う、という挙動を避ける。ただし黙って減らさない。
+        val engine = MockEngine {
+            respond("""{"data":[{"id":1,"title":"ねじ"},{"title":"id が無い"},"文字列"]}""")
+        }
+
+        val inventories = repositoryOf(engine).getInventories()
+
+        assertEquals(listOf(Inventory(1, "ねじ", "")), inventories.items)
+        assertEquals(2, inventories.skipped)
     }
 
     @Test
     fun `getInventories は在庫が 0 件なら空のリストを返す`() = runTest {
         val engine = MockEngine { respond("""{"data":[]}""") }
 
-        assertEquals(emptyList<Inventory>(), repositoryOf(engine).getInventories())
+        val inventories = repositoryOf(engine).getInventories()
+
+        assertEquals(emptyList<Inventory>(), inventories.items)
+        assertEquals(0, inventories.skipped)
     }
 
     @Test

@@ -13,4 +13,6 @@
     <string name="message_create_inventory_success">在庫データを作成しました</string>
     <string name="fab_create_inventory_description">在庫データを作成する</string>
     <string name="inventory_image_description">在庫画像</string>
+    <string name="inventories_empty">在庫データがありません</string>
+    <string name="inventories_skipped">%1$d 件の在庫データを読み取れませんでした</string>
 </resources>

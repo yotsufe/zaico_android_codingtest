@@ -17,8 +17,24 @@ sealed interface InventoriesUiState {
     /** 読み込み中。 */
     data object Loading : InventoriesUiState
 
-    /** 読み込みに成功した。 */
-    data class Loaded(val inventories: List<Inventory>) : InventoriesUiState
+    /**
+     * 読み込みに成功した。
+     *
+     * [skipped] はまだ画面に出していない「読み飛ばした件数」。表示後に
+     * [InventoriesViewModel.onSkippedShown] を呼ぶと 0 になる。StateFlow は最後の値を
+     * 保持するため、消さないと購読し直すたびに同じ Toast が再表示される。
+     */
+    data class Loaded(
+        val inventories: List<Inventory>,
+        val skipped: Int = 0,
+    ) : InventoriesUiState {
+
+        /** 在庫が 1 件も無い。「取得に失敗した」とは区別して伝える。 */
+        val isEmpty: Boolean get() = inventories.isEmpty()
+
+        /** まだ通知していない読み飛ばしがある。 */
+        val hasUnshownSkipped: Boolean get() = skipped > 0
+    }
 
     /**
      * 読み込みに失敗した。
@@ -61,7 +77,8 @@ class InventoriesViewModel @Inject constructor(
         fetchJob = viewModelScope.launch {
             _uiState.value = InventoriesUiState.Loading
             try {
-                _uiState.value = InventoriesUiState.Loaded(repository.getInventories())
+                val inventories = repository.getInventories()
+                _uiState.value = InventoriesUiState.Loaded(inventories.items, inventories.skipped)
             } catch (cancellation: CancellationException) {
                 // runCatching はキャンセルも捕まえてしまうため使わない。
                 // 打ち切りや画面破棄を「読み込み失敗」として表示しないように再送出する。
@@ -69,6 +86,14 @@ class InventoriesViewModel @Inject constructor(
             } catch (error: Exception) {
                 _uiState.value = InventoriesUiState.Failed(error)
             }
+        }
+    }
+
+    /** 読み飛ばしの通知を表示し終えたことを伝える。同じ Toast が再表示されないようにする。 */
+    fun onSkippedShown() {
+        val state = _uiState.value
+        if (state is InventoriesUiState.Loaded && state.skipped > 0) {
+            _uiState.value = state.copy(skipped = 0)
         }
     }
 

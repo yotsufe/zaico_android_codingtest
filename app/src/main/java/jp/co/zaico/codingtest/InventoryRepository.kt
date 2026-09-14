@@ -2,15 +2,13 @@ package jp.co.zaico.codingtest
 
 import io.ktor.client.HttpClient
 import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.jsonArray
-import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.put
 
 /** 在庫データの窓口。ViewModel はこの interface にだけ依存する。 */
 interface InventoryRepository {
 
     /** 在庫一覧を取得する。失敗時は例外を投げる。 */
-    suspend fun getInventories(): List<Inventory>
+    suspend fun getInventories(): Inventories
 
     /** 在庫詳細を取得する。失敗時は例外を投げる。 */
     suspend fun getInventory(inventoryId: Int): Inventory
@@ -35,36 +33,51 @@ class ZaicoInventoryRepository(
     },
 ) : InventoryRepository {
 
-    override suspend fun getInventories(): List<Inventory> = withInventoriesPath { client, path ->
-        ZaicoApi.parseData(ZaicoApi.getRawBody(client, endpoint, path))
-            .jsonArray
-            .map { ZaicoApi.toInventory(it.jsonObject) }
+    override suspend fun getInventories(): Inventories = withInventoriesBasePath { client, base ->
+        val elements = ZaicoApi.parseDataAsArray(ZaicoApi.getRawBody(client, endpoint, "$base.json"))
+        // 1 件でも形が違えば全件を失うのは避ける。ただし黙って減らすと在庫が欠けたことに
+        // 気づけないため、読み飛ばした件数を呼び出し側へ渡す。
+        val items = elements.mapNotNull {
+            // ApiException に絞る。runCatching だと実装ミス由来の例外まで
+            // 「形が違う 1 件」として無言で読み飛ばしてしまう。
+            try {
+                ZaicoApi.toInventory(it)
+            } catch (e: ApiException) {
+                null
+            }
+        }
+        Inventories(items = items, skipped = elements.size - items.size)
     }
 
-    override suspend fun getInventory(inventoryId: Int): Inventory = withInventoriesPath { client, path ->
-        val body = ZaicoApi.getRawBody(client, endpoint, "${path.removeSuffix(".json")}/$inventoryId.json")
-        ZaicoApi.toInventory(ZaicoApi.parseData(body).jsonObject)
+    override suspend fun getInventory(inventoryId: Int): Inventory = withInventoriesBasePath { client, base ->
+        val body = ZaicoApi.getRawBody(client, endpoint, "$base/$inventoryId.json")
+        ZaicoApi.toInventory(ZaicoApi.parseDataAsObject(body))
     }
 
     override suspend fun createInventory(title: String) {
-        withInventoriesPath { client, path ->
+        withInventoriesBasePath { client, base ->
             // 公開 API v2 ドキュメントの Inventories_create に準拠する。
             // 必須パラメータは title のみ。
             // ドキュメントの成功ステータスは 201 だが実機は 200 を返すため、2xx を成功として扱う。
             ZaicoApi.postRawBody(
                 client = client,
                 endpoint = endpoint,
-                path = path,
+                path = "$base.json",
                 jsonBody = buildJsonObject { put("title", title) }.toString(),
             )
         }
     }
 
-    /** クライアントの生成・解放と company_id の解決をまとめる。3 つの操作すべてが必要とするため。 */
-    private suspend fun <T> withInventoriesPath(
+    /**
+     * クライアントの生成・解放と company_id の解決をまとめる。3 つの操作すべてが必要とするため。
+     *
+     * 渡すのは拡張子を付ける前のベースパス。一覧と作成は `.json` を、詳細は `/<id>.json` を足す。
+     * ここで `.json` まで付けると、詳細取得だけが剥がして付け直すことになる。
+     */
+    private suspend fun <T> withInventoriesBasePath(
         block: suspend (HttpClient, String) -> T,
     ): T = httpClientFactory().use { client ->
         val companyId = companyIdProvider(client)
-        block(client, "/api/v2/orgs/companies/$companyId/inventories.json")
+        block(client, "/api/v2/orgs/companies/$companyId/inventories")
     }
 }

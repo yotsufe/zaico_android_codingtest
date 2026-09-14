@@ -5,6 +5,7 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -34,14 +35,48 @@ class InventoriesViewModelTest {
     }
 
     @Test
+    fun `読み飛ばした件数を Loaded に持たせる`() = runTest {
+        val viewModel = InventoriesViewModel(FakeInventoryRepository(inventories, skipped = 2))
+
+        viewModel.fetch()
+
+        assertEquals(InventoriesUiState.Loaded(inventories, skipped = 2), viewModel.uiState.value)
+    }
+
+    @Test
+    fun `在庫が 0 件なら isEmpty になる`() = runTest {
+        val viewModel = InventoriesViewModel(FakeInventoryRepository(emptyList()))
+
+        viewModel.fetch()
+
+        val state = viewModel.uiState.value as InventoriesUiState.Loaded
+        assertTrue(state.isEmpty)
+        assertFalse(state.hasUnshownSkipped)
+    }
+
+    @Test
+    fun `onSkippedShown を呼ぶと同じ読み飛ばしを二度通知しない`() = runTest {
+        val viewModel = InventoriesViewModel(FakeInventoryRepository(inventories, skipped = 2))
+
+        viewModel.fetch()
+        assertTrue((viewModel.uiState.value as InventoriesUiState.Loaded).hasUnshownSkipped)
+
+        viewModel.onSkippedShown()
+
+        val state = viewModel.uiState.value as InventoriesUiState.Loaded
+        assertFalse(state.hasUnshownSkipped)
+        assertEquals(inventories, state.inventories)
+    }
+
+    @Test
     fun `読み込み中は Loading のままで、完了すると Loaded になる`() = runTest {
-        val gate = CompletableDeferred<Unit>()
-        val viewModel = InventoriesViewModel(FakeInventoryRepository(inventories, gate = gate))
+        val latch = CompletableDeferred<Unit>()
+        val viewModel = InventoriesViewModel(FakeInventoryRepository(inventories, latch = latch))
 
         viewModel.fetch()
         assertEquals(InventoriesUiState.Loading, viewModel.uiState.value)
 
-        gate.complete(Unit)
+        latch.complete(Unit)
         assertEquals(InventoriesUiState.Loaded(inventories), viewModel.uiState.value)
     }
 
@@ -95,8 +130,8 @@ class InventoriesViewModelTest {
         val stale = listOf(Inventory(1, "古い一覧", "1"))
         val fresh = listOf(Inventory(2, "作成した在庫", "1"))
 
-        repository.gates[1].complete(fresh) // 新しい方が先に返る
-        repository.gates[0].complete(stale) // 古い方が後に返る
+        repository.pendingResponses[1].complete(fresh) // 新しい方が先に返る
+        repository.pendingResponses[0].complete(stale) // 古い方が後に返る
 
         assertEquals(InventoriesUiState.Loaded(fresh), viewModel.uiState.value)
     }
@@ -114,15 +149,15 @@ class InventoriesViewModelTest {
 
     @Test
     fun `fetchIfNeeded は読み込み中なら重ねて通信しない`() = runTest {
-        val gate = CompletableDeferred<Unit>()
-        val repository = FakeInventoryRepository(inventories, gate = gate)
+        val latch = CompletableDeferred<Unit>()
+        val repository = FakeInventoryRepository(inventories, latch = latch)
         val viewModel = InventoriesViewModel(repository)
 
         viewModel.fetchIfNeeded()
         viewModel.fetchIfNeeded()
 
         assertEquals(1, repository.getInventoriesCallCount)
-        gate.complete(Unit)
+        latch.complete(Unit)
     }
 
     @Test
@@ -148,14 +183,18 @@ class InventoriesViewModelTest {
         assertEquals(InventoriesUiState.Failed(null), viewModel.uiState.value)
     }
 
-    /** 呼ばれるたびに gate を積み、応答が返る順序をテストから操作できるようにする。 */
+    /**
+     * 呼ばれるたびに応答を保留し、どの順で返すかをテストから操作できるようにする。
+     *
+     * latch と違い値を運ぶ（complete に一覧を渡す）ので、名前も応答であることを示す。
+     */
     private class SlowRepository : InventoryRepository {
-        val gates = mutableListOf<CompletableDeferred<List<Inventory>>>()
+        val pendingResponses = mutableListOf<CompletableDeferred<List<Inventory>>>()
 
-        override suspend fun getInventories(): List<Inventory> {
-            val gate = CompletableDeferred<List<Inventory>>()
-            gates += gate
-            return gate.await()
+        override suspend fun getInventories(): Inventories {
+            val response = CompletableDeferred<List<Inventory>>()
+            pendingResponses += response
+            return Inventories(items = response.await(), skipped = 0)
         }
 
         override suspend fun getInventory(inventoryId: Int): Inventory = error("未使用")
