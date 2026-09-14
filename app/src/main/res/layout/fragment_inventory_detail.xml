@@ -3,7 +3,6 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:ignore="HardcodedText"
     tools:context=".InventoryDetailFragment">
 
     <LinearLayout
@@ -21,7 +20,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="ID" />
+                android:text="@string/inventory_detail_id" />
 
             <TextView
                 android:id="@+id/idText"
@@ -53,14 +52,14 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="在庫画像" />
+                android:text="@string/inventory_detail_image" />
 
             <ImageView
                 android:id="@+id/imageView"
                 android:layout_width="64dp"
                 android:layout_height="64dp"
                 android:layout_marginStart="16dp"
-                android:contentDescription="@string/inventory_image_description"
+                android:contentDescription="@string/inventory_image_none"
                 android:src="@drawable/no_image" />
 
         </LinearLayout>
@@ -81,7 +80,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="タイトル" />
+                android:text="@string/inventory_detail_title" />
 
             <TextView
                 android:id="@+id/titleText"
@@ -108,7 +107,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="数量" />
+                android:text="@string/inventory_detail_quantity" />
 
             <TextView
                 android:id="@+id/quantityText"
