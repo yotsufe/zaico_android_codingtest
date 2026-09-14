@@ -6,7 +6,12 @@ plugins {
     alias(libs.plugins.kotlin.kapt)
     alias(libs.plugins.hilt.android)
     alias(libs.plugins.androidx.navigation.safeargs)
+    alias(libs.plugins.ktlint)
     kotlin("plugin.serialization") version "1.5.31"
+}
+
+ktlint {
+    version.set(libs.versions.ktlint)
 }
 
 // local.properties はバージョン管理対象外。API トークンなどの秘密情報はここから読む。

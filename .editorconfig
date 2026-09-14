@@ -1,0 +1,9 @@
+root = true
+
+[*.{kt,kts}]
+ktlint_code_style = intellij_idea
+
+# Fragment の ViewBinding は `_binding` と private な getter の組で扱う。
+# これは Android 公式ドキュメントの作法だが、このルールは
+# 「バッキングプロパティに対応する公開プロパティがあること」を求めるため外す。
+ktlint_standard_backing-property-naming = disabled

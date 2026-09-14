@@ -69,6 +69,15 @@ JVM 上で完結します（実機・API トークン不要）。通信は Ktor 
 
 設計方針は [docs/design.md](docs/design.md) を参照してください。
 
+### 書式チェック
+
+```bash
+./gradlew ktlintCheck    # 検査
+./gradlew ktlintFormat   # 一括修正
+```
+
+`./gradlew check` からも実行されます。
+
 ### 動作確認済の開発環境
 
 - IDE：Android Studio Ladybug Feature Drop | 2024.2.2 Patch 1
