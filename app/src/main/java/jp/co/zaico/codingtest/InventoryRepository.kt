@@ -20,17 +20,13 @@ interface InventoryRepository {
 /**
  * zaico API v2 を叩く [InventoryRepository] の実装。
  *
- * HttpClient と company_id の解決をコンストラクタで差し替えられるようにしてあるため、
- * MockEngine を使えば実際の通信なしにリクエストの形を検証できる。
+ * HttpClient をコンストラクタで差し替えられるようにしてあるため、MockEngine を使えば
+ * 実際の通信なしにリクエストの形を検証できる。
  */
 class ZaicoInventoryRepository(
     private val endpoint: ZaicoApiEndpoint,
+    private val companyIdProvider: CompanyIdProvider,
     private val httpClientFactory: () -> HttpClient = { ZaicoApi.newClient() },
-    // ZaicoApi 側の company_id キャッシュはプロセス全体で共有されテスト間で漏れるため、
-    // 解決処理そのものを差し替えられるようにしておく。
-    private val companyIdProvider: suspend (HttpClient) -> Int = { client ->
-        ZaicoApi.resolveCompanyId(client, endpoint)
-    },
 ) : InventoryRepository {
 
     override suspend fun getInventories(): Inventories = withInventoriesBasePath { client, base ->
@@ -77,7 +73,7 @@ class ZaicoInventoryRepository(
     private suspend fun <T> withInventoriesBasePath(
         block: suspend (HttpClient, String) -> T,
     ): T = httpClientFactory().use { client ->
-        val companyId = companyIdProvider(client)
+        val companyId = companyIdProvider.resolve(client)
         block(client, "/api/v2/orgs/companies/$companyId/inventories")
     }
 }

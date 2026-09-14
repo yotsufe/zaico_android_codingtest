@@ -39,7 +39,7 @@ class MainActivity : AppCompatActivity() {
      * onCreate の時点ではビューにコントローラが結び付いていない。
      */
     private fun navController(): NavController {
-        val host = supportFragmentManager.findFragmentById(R.id.nav_host_fragment_content_main)
+        val host = supportFragmentManager.findFragmentById(R.id.navHostFragment)
         return checkNotNull(host as? NavHostFragment).navController
     }
 }

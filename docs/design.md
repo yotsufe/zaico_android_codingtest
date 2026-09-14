@@ -14,6 +14,9 @@ CreateInventoryActivity ──→ CreateInventoryViewModel ──→ InventoryRe
                                           │
                              ZaicoInventoryRepository (実装)
                                           │
+                          ┌───────────────┴───────────────┐
+                    CompanyIdProvider                      │
+                          └───────────────┬───────────────┘
                                       ZaicoApi
 ```
 
@@ -38,8 +41,8 @@ CreateInventoryActivity ──→ CreateInventoryViewModel ──→ InventoryRe
 |---|---|
 | `ZaicoApiEndpoint` が URL 組み立てと認証ヘッダを持つ | 接続先の知識を 1 箇所に集約する。認証方式を変える場合もここだけで済む |
 | `ApiTokenMissingException` を投げる | `Context` を持たないデータ層では文字列リソースを引けないため、事実だけを例外で伝える |
-| `Context.messageOf(Throwable)` で文言に変換する | 例外から表示文言への変換を UI 側の 1 箇所に集約する |
-| `companyId` とは別に `fetchCompanyId` を持つ | `companyId` のキャッシュはプロセス全体で共有されテスト間で漏れるため、キャッシュを通さない経路をテスト対象にする |
+| `Context.displayMessageOf(Throwable)` で文言に変換する | 例外から表示文言への変換を UI 側の 1 箇所に集約する |
+| company_id の解決を `CompanyIdProvider` に分ける | `ZaicoApi` は `object` なので、保持した company_id がプロセス全体で共有されテストから初期化できない。`@Singleton` のクラスにして Hilt に寿命を任せると、テストは新しいインスタンスを作れる |
 
 ### 各層の責務
 
@@ -51,8 +54,8 @@ UI がするのは、状態を受け取って描画することと、入力を�
 |---|---|---|
 | Activity / Fragment | 状態の購読と描画、入力の受け渡し | 判断、通信、状態 |
 | ViewModel | 画面の状態、バリデーション、Repository の呼び出し | Android のリソース、View への参照 |
-| Repository | API の呼び出し、レスポンスからモデルへの変換 | 画面の都合 |
-| `ZaicoApi` | HTTP の送受信、ステータス判定 | `Context`、表示文言 |
+| Repository | API の呼び出し、取得結果の組み立て | 画面の都合、HTTP とJSON の詳細 |
+| `ZaicoApi` | HTTP の送受信、ステータス判定、JSON の解析とモデルへの変換 | `Context`、表示文言 |
 
 ### 依存の受け取り方
 
@@ -70,8 +73,9 @@ UI がするのは、状態を受け取って描画することと、入力を�
 | 対象 | 手段 | 検証内容 |
 |---|---|---|
 | `ZaicoApi` | MockEngine | URL 組み立て、認証ヘッダ、ステータス判定、エラーメッセージ抽出、JSON 解析 |
-| `ZaicoInventoryRepository` | MockEngine | 作成リクエストの形（メソッド・パス・ボディ）、異常系の例外 |
-| `CreateInventoryViewModel` | 手書き Fake | バリデーション、状態遷移 |
+| `CompanyIdProvider` | MockEngine | company_id の解決、保持して 2 回目以降は叩かないこと、異常系の例外 |
+| `ZaicoInventoryRepository` | MockEngine | 一覧・詳細・作成のリクエストの形（メソッド・パス・ボディ）、読み飛ばし、異常系の例外 |
+| ViewModel 各種 | 手書き Fake | バリデーション、状態遷移、通知の消費 |
 
 **Activity / Fragment はテストしない。** 上記の責務分離により、UI 層にはテスト対象となる
 ロジックが存在しないため。
@@ -91,7 +95,7 @@ UI がするのは、状態を受け取って描画することと、入力を�
 ZaicoApi が例外を投げる
   → Repository はそのまま伝播（変換しない）
   → ViewModel が状態（Failed など）に変換する
-  → UI が messageOf で表示文言にして出す
+  → UI が displayMessageOf で表示文言にして出す
 ```
 
 ViewModel は `runCatching` を使わない。`CancellationException` まで捕まえてしまい、

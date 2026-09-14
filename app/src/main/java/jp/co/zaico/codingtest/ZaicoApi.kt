@@ -36,14 +36,11 @@ class ApiTokenMissingException : ApiException("API token is not configured")
  * zaico 公開 API v2 へのアクセスをまとめたヘルパー。
  *
  * v1 は組織ユーザートークンを受け付けず 403 を返すため v2 を利用する。
- * v2 の在庫エンドポイントは company_id を必要とするので、初回アクセス時に API から取得して保持する。
+ * v2 の在庫エンドポイントが必要とする company_id の解決は [CompanyIdProvider] が持つ。
  */
 object ZaicoApi {
 
     private val json = Json { ignoreUnknownKeys = true }
-
-    @Volatile
-    private var cachedCompanyId: Int? = null
 
     fun newClient(): HttpClient = HttpClient(Android) {
         install(ContentNegotiation) {
@@ -100,26 +97,11 @@ object ZaicoApi {
         header("Authorization", endpoint.authorizationHeader)
     }
 
-    /** 在庫エンドポイントのパスに必要な company_id を返す（初回のみ API を呼ぶ）。 */
-    suspend fun resolveCompanyId(client: HttpClient, endpoint: ZaicoApiEndpoint): Int = cachedCompanyId ?: fetchCompanyId(client, endpoint).also { cachedCompanyId = it }
-
-    /**
-     * キャッシュを通さずに company_id を取得する。
-     *
-     * プロセス全体で共有されるキャッシュはテスト間で漏れるため、テストはこちらを検証する。
-     */
-    internal suspend fun fetchCompanyId(client: HttpClient, endpoint: ZaicoApiEndpoint): Int {
-        val body = getRawBody(client, endpoint, "/api/v2/orgs/companies.json")
-        val companies = parseDataAsArray(body)
-        if (companies.isEmpty()) {
-            throw ApiException("利用可能な会社が見つかりませんでした")
-        }
-
-        return companies.first().asObject("会社").requireInt("id")
-    }
+    /** オブジェクトの必須な整数フィールドを取り出す。[what] は失敗時の文言に使う。 */
+    fun requireIntOf(element: JsonElement, what: String, key: String): Int = element.asObject(what).requireInt(key)
 
     /** v2 のレスポンスは {"data": ...} で包まれているので、その中身を取り出す。 */
-    fun parseData(body: String): JsonElement {
+    private fun parseData(body: String): JsonElement {
         val root = runCatching { json.parseToJsonElement(body) }
             .getOrElse { throw ApiException("レスポンスを JSON として解釈できませんでした") }
         return root.asObject("レスポンス")["data"]
