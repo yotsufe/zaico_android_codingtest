@@ -111,6 +111,56 @@ git ls-files --others --exclude-standard   # 未追跡（新規ファイル）
 - **落とした指摘と、落とした理由**
 - 実行できなかった観点があればその旨
 
+### 7. 実施を記録する
+
+**報告まで終えたら、最後に必ずマーカーを書く。**
+
+```bash
+mkdir -p .claude/peer-review
+# / は ~ に置き換える。git はブランチ名に ~ を許さないので、_ と違って
+# feat/x と feat_x が同じファイル名に潰れる衝突が起きない。
+BRANCH=$(git symbolic-ref -q --short HEAD | tr '/' '~')
+cat > ".claude/peer-review/$BRANCH" <<EOF
+reviewed: $(git rev-parse HEAD)
+観点: <起動した観点をカンマ区切りで>
+指摘: <件数>（修正 <件数> / 判断待ち <件数> / 却下 <件数>）
+EOF
+```
+
+`.claude/hooks/git-guard.sh` がこのファイルを見て、**マーカーが無いブランチの
+`git push` と `gh pr create` を拒否する**。レビューを飛ばしたまま PR を出すのを防ぐため。
+
+`reviewed:` の SHA は人が読むための記録で、hook は**存在の有無しか見ない**。
+`pr-create` の流れではレビューの後にコミットを作るため、この SHA は push 時の HEAD とは
+一致しない。「いつ時点のツリーを見たか」を後から辿るためだけに残している。
+
+レビューを飛ばす場合は、同じ場所に理由を書く。**書式は 1 行目を `SKIPPED:` で始める。**
+
+```bash
+echo 'SKIPPED: <理由。ユーザーの了承を得たことを含める>' > ".claude/peer-review/$BRANCH"
+```
+
+このディレクトリは `.gitignore` 対象なので、リポジトリには入らない。
+
+### 8. 古いマーカーを掃除する
+
+**マーカーを書いたついでに、消えたブランチのものを片付ける。**
+
+```bash
+KEEP=$(git for-each-ref --format='%(refname:short)' refs/heads | tr '/' '~')
+if [ -n "$KEEP" ]; then                     # 空なら何も消さない（全消しを防ぐ）
+  for f in .claude/peer-review/*; do
+    [ -f "$f" ] || continue
+    # grep -q は一致した時点で終了し、上流の printf が SIGPIPE で死ぬ。
+    # pipefail の下では終了ステータスが 141 になり、一致したのに消してしまう。
+    printf '%s\n' "$KEEP" | /usr/bin/grep -xF "${f##*/}" >/dev/null || rm -f "$f"
+  done
+fi
+```
+
+**hook では掃除しない。** 検査用のフックが副作用でファイルを消すと、拒否するだけの場合でも
+状態が変わり、`SKIPPED:` の記録が失われる。
+
 ## 注意
 
 - 指摘の**件数だけ**を伝えて終わらせない。中身がわかる形で出す

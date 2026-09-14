@@ -18,4 +18,5 @@
 .cxx
 local.properties
 /.claude/hooks/secret-patterns.txt
+/.claude/peer-review/
 /.claude/settings.local.json
