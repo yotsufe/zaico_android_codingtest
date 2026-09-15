@@ -79,7 +79,7 @@ class CreateInventoryViewModelTest {
     @Test
     fun `作成に失敗したら例外を持つ Failed になる`() = runTest {
         val viewModel = CreateInventoryViewModel(
-            FakeInventoryRepository(failure = ApiException("Title can't be blank")),
+            FakeInventoryRepository(failure = ApiException.ErrorResponse("Title can't be blank")),
         )
 
         viewModel.createInventory("ねじ")
@@ -91,7 +91,7 @@ class CreateInventoryViewModelTest {
 
     @Test
     fun `結果を表示し終えたら Idle に戻る`() = runTest {
-        val viewModel = CreateInventoryViewModel(FakeInventoryRepository(failure = ApiException("error")))
+        val viewModel = CreateInventoryViewModel(FakeInventoryRepository(failure = ApiException.ErrorResponse("error")))
         viewModel.createInventory("ねじ")
 
         viewModel.onResultHandled()

@@ -22,15 +22,40 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
 
-/** API がエラーステータスを返したときに投げる例外。 */
-open class ApiException(message: String) : Exception(message)
+/**
+ * API へのアクセスが失敗したことを表す。
+ *
+ * **表示する文言は持たない。** UI 層が [displayMessageOf] で決める。
+ * 唯一の例外が [ErrorResponse] で、API 自身の文言をそのまま出す。
+ */
+sealed class ApiException(message: String) : Exception(message) {
+
+    class TokenMissing : ApiException("API token is not configured")
+
+    /** [reason] は API 自身が返した文言。こちらで作らない。 */
+    class ErrorResponse(val reason: String) : ApiException(reason)
+
+    class NotJson : ApiException("response is not JSON")
+
+    class MissingData : ApiException("response has no data")
+
+    class NotObject(val part: JsonPart) : ApiException("$part is not an object")
+
+    class NotArray(val part: JsonPart) : ApiException("$part is not an array")
+
+    class MissingField(val key: String) : ApiException("$key is missing")
+
+    class NotInteger(val key: String) : ApiException("$key is not an integer")
+
+    class OutOfRange(val key: String) : ApiException("$key is out of range")
+
+    class NoCompany : ApiException("no company available")
+}
 
 /**
- * API トークンが設定されていないときに投げる例外。
- *
- * 表示する文言は文字列リソースを持つ UI 層が [displayMessageOf] で決める。
+ * レスポンスのどの部分かを表す。表示名は UI 層が持つ。
  */
-class ApiTokenMissingException : ApiException("API token is not configured")
+enum class JsonPart { RESPONSE, DATA, INVENTORY, COMPANY }
 
 /**
  * zaico 公開 API v2 へのアクセスをまとめたヘルパー。
@@ -82,13 +107,13 @@ object ZaicoApi {
         send: suspend (String) -> HttpResponse,
     ): String {
         if (!endpoint.hasToken) {
-            throw ApiTokenMissingException()
+            throw ApiException.TokenMissing()
         }
 
         val response = send(endpoint.urlOf(path))
         val body = response.bodyAsText()
         if (!response.status.isSuccess()) {
-            throw ApiException(errorMessageOf(body) ?: response.status.toString())
+            throw ApiException.ErrorResponse(errorMessageOf(body) ?: response.status.toString())
         }
         return body
     }
@@ -97,26 +122,26 @@ object ZaicoApi {
         header("Authorization", endpoint.authorizationHeader)
     }
 
-    /** オブジェクトの必須な整数フィールドを取り出す。[what] は失敗時の文言に使う。 */
-    fun requireIntOf(element: JsonElement, what: String, key: String): Int = element.asObject(what).requireInt(key)
+    /** オブジェクトの必須な整数フィールドを取り出す。[part] は失敗時にどこを指すかを表す。 */
+    fun requireIntOf(element: JsonElement, part: JsonPart, key: String): Int = element.asObject(part).requireInt(key)
 
     /** v2 のレスポンスは {"data": ...} で包まれているので、その中身を取り出す。 */
     private fun parseData(body: String): JsonElement {
         val root = runCatching { json.parseToJsonElement(body) }
-            .getOrElse { throw ApiException("レスポンスを JSON として解釈できませんでした") }
-        return root.asObject("レスポンス")["data"]
-            ?: throw ApiException("レスポンスに data が含まれていません")
+            .getOrElse { throw ApiException.NotJson() }
+        return root.asObject(JsonPart.RESPONSE)["data"]
+            ?: throw ApiException.MissingData()
     }
 
     /** data が配列であることまで確かめて取り出す。 */
-    fun parseDataAsArray(body: String): JsonArray = parseData(body).asArray("data")
+    fun parseDataAsArray(body: String): JsonArray = parseData(body).asArray(JsonPart.DATA)
 
     /** data がオブジェクトであることまで確かめて取り出す。 */
-    fun parseDataAsObject(body: String): JsonObject = parseData(body).asObject("data")
+    fun parseDataAsObject(body: String): JsonObject = parseData(body).asObject(JsonPart.DATA)
 
     /** 在庫 1 件を表す JSON を Inventory に写す。オブジェクトでなければ ApiException。 */
     fun toInventory(element: JsonElement): Inventory {
-        val json = element.asObject("在庫")
+        val json = element.asObject(JsonPart.INVENTORY)
         return Inventory(
             id = json.requireInt("id"),
             title = json.stringOrEmpty("title"),
@@ -141,9 +166,9 @@ object ZaicoApi {
         null
     }
 
-    private fun JsonElement.asObject(what: String): JsonObject = this as? JsonObject ?: throw ApiException("${what}がオブジェクトではありません")
+    private fun JsonElement.asObject(part: JsonPart): JsonObject = this as? JsonObject ?: throw ApiException.NotObject(part)
 
-    private fun JsonElement.asArray(what: String): JsonArray = this as? JsonArray ?: throw ApiException("${what}が配列ではありません")
+    private fun JsonElement.asArray(part: JsonPart): JsonArray = this as? JsonArray ?: throw ApiException.NotArray(part)
 
     /**
      * 必須の整数フィールド。欠落・型違い・数値でない文字列のいずれも ApiException にする。
@@ -153,12 +178,15 @@ object ZaicoApi {
      * quantity が文字列で返る API なので、id も "7" のような文字列で来る場合を受け入れる。
      */
     private fun JsonObject.requireInt(key: String): Int {
-        val value = this[key] ?: throw ApiException("${key}が含まれていません")
+        val value = this[key] ?: throw ApiException.MissingField(key)
         val text = (value as? JsonPrimitive)?.contentOrNull
-            ?: throw ApiException("${key}が整数ではありません")
-        return text.toIntOrNull() ?: throw ApiException(
-            if (integerText.matches(text)) "${key}が扱える範囲を超えています" else "${key}が整数ではありません",
-        )
+            ?: throw ApiException.NotInteger(key)
+        return text.toIntOrNull() ?: if (integerText.matches(text)) {
+            // 整数の形はしているが Int に収まらない。「整数ではない」とは区別して伝える。
+            throw ApiException.OutOfRange(key)
+        } else {
+            throw ApiException.NotInteger(key)
+        }
     }
 
     /** 任意の文字列フィールド。欠落・null・型違いはいずれも空文字にする。 */

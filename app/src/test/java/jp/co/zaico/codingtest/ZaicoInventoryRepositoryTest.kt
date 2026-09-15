@@ -125,7 +125,7 @@ class ZaicoInventoryRepositoryTest {
             httpClientFactory = { HttpClient(engine) },
         )
 
-        assertThrows(ApiTokenMissingException::class.java) {
+        assertThrows(ApiException.TokenMissing::class.java) {
             runBlocking { repository.createInventory("ねじ") }
         }
 

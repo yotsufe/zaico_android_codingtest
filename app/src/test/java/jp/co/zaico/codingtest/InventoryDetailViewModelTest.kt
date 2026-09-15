@@ -71,7 +71,7 @@ class InventoryDetailViewModelTest {
 
     @Test
     fun `読み込みに失敗したら例外を持つ Failed になる`() = runTest {
-        val viewModel = InventoryDetailViewModel(FakeInventoryRepository(failure = ApiException("Not Found")))
+        val viewModel = InventoryDetailViewModel(FakeInventoryRepository(failure = ApiException.ErrorResponse("Not Found")))
 
         viewModel.fetchIfNeeded(7)
 
@@ -120,7 +120,7 @@ class InventoryDetailViewModelTest {
 
     @Test
     fun `fetchIfNeeded は失敗したあとなら読み込み直す`() = runTest {
-        val repository = FakeInventoryRepository(failure = ApiException("Not Found"))
+        val repository = FakeInventoryRepository(failure = ApiException.ErrorResponse("Not Found"))
         val viewModel = InventoryDetailViewModel(repository)
 
         viewModel.fetchIfNeeded(7)
@@ -131,7 +131,7 @@ class InventoryDetailViewModelTest {
 
     @Test
     fun `onErrorShown を呼ぶと同じエラーを二度通知しない`() = runTest {
-        val viewModel = InventoryDetailViewModel(FakeInventoryRepository(failure = ApiException("Not Found")))
+        val viewModel = InventoryDetailViewModel(FakeInventoryRepository(failure = ApiException.ErrorResponse("Not Found")))
 
         viewModel.fetchIfNeeded(7)
         viewModel.onErrorShown()

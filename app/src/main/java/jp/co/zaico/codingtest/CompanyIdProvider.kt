@@ -38,8 +38,8 @@ class CompanyIdProvider @Inject constructor(
         val body = ZaicoApi.getRawBody(client, endpoint, "/api/v2/orgs/companies.json")
         val companies = ZaicoApi.parseDataAsArray(body)
         if (companies.isEmpty()) {
-            throw ApiException("利用可能な会社が見つかりませんでした")
+            throw ApiException.NoCompany()
         }
-        return ZaicoApi.requireIntOf(companies.first(), what = "会社", key = "id")
+        return ZaicoApi.requireIntOf(companies.first(), part = JsonPart.COMPANY, key = "id")
     }
 }

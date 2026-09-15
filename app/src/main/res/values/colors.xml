@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- 在庫画像ダイアログの背景。背後の画面がうっすら透ける濃さにする。 -->
+    <color name="divider">#000000</color>
+
+    <!-- 先頭の B3 は alpha。背後の画面がうっすら透ける濃さ。 -->
     <color name="image_dialog_scrim">#B3424242</color>
 </resources>
