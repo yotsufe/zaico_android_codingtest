@@ -15,6 +15,9 @@
     <string name="inventory_detail_id">ID</string>
     <string name="inventory_detail_image">在庫画像</string>
     <string name="inventory_image_none">画像なし</string>
+    <string name="inventory_image_description">%1$sの画像</string>
+    <string name="inventory_image_close">画像を閉じる</string>
+    <string name="inventory_image_description_untitled">在庫画像</string>
     <string name="inventory_detail_title">タイトル</string>
     <string name="inventory_detail_quantity">数量</string>
     <string name="inventories_empty">在庫データがありません</string>

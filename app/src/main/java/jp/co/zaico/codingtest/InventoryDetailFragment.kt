@@ -11,7 +11,9 @@ import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
+import com.bumptech.glide.Glide
 import dagger.hilt.android.AndroidEntryPoint
 import jp.co.zaico.codingtest.databinding.FragmentInventoryDetailBinding
 import kotlinx.coroutines.launch
@@ -52,7 +54,7 @@ class InventoryDetailFragment : Fragment() {
 
         when (state) {
             is InventoryDetailUiState.Loading -> Unit
-            is InventoryDetailUiState.Loaded -> showInventory(state.inventory)
+            is InventoryDetailUiState.Loaded -> showInventory(state)
             is InventoryDetailUiState.Failed -> state.error?.let {
                 showError(it)
                 // 表示済みにしないと、購読し直すたびに同じ Toast が出る
@@ -61,10 +63,52 @@ class InventoryDetailFragment : Fragment() {
         }
     }
 
-    private fun showInventory(inventory: Inventory) {
+    private fun showInventory(state: InventoryDetailUiState.Loaded) {
+        val inventory = state.inventory
         binding.idText.text = String.format(Locale.ROOT, "%d", inventory.id)
         binding.titleText.text = inventory.title
         binding.quantityText.text = inventory.quantity
+        showImage(state)
+    }
+
+    private fun showImage(state: InventoryDetailUiState.Loaded) {
+        val inventory = state.inventory
+        binding.imageView.contentDescription = if (state.canShowImage) {
+            imageDescriptionOf(inventory.title)
+        } else {
+            getString(R.string.inventory_image_none)
+        }
+
+        Glide.with(this)
+            .load(inventory.imageUrl)
+            .placeholder(R.drawable.no_image)
+            .error(R.drawable.no_image)
+            .into(binding.imageView)
+
+        binding.imageView.setOnClickListener(
+            if (state.canShowImage) {
+                View.OnClickListener {
+                    findNavController().navigate(
+                        InventoryDetailFragmentDirections.actionInventoryDetailToInventoryImage(
+                            imageUrl = checkNotNull(inventory.imageUrl),
+                            title = inventory.title,
+                        ),
+                    )
+                }
+            } else {
+                null
+            },
+        )
+        // setOnClickListener は null を渡しても内部で setClickable(true) を呼ぶ。
+        // 先に isClickable を落とすと打ち消されるので、必ずこの順で書く。
+        binding.imageView.isClickable = state.canShowImage
+    }
+
+    /** API のタイトルは欠けていると空文字になる。そのままだと「の画像」とだけ読み上げられる。 */
+    private fun imageDescriptionOf(title: String): String = if (title.isBlank()) {
+        getString(R.string.inventory_image_description_untitled)
+    } else {
+        getString(R.string.inventory_image_description, title)
     }
 
     private fun showError(error: Throwable) {
@@ -77,6 +121,10 @@ class InventoryDetailFragment : Fragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
+        // Glide.with(this) は view ではなく Fragment のライフサイクルに紐づくので、
+        // view の破棄では自動解除されない。ここで外さないと、読み込み完了時に
+        // 破棄済みの binding を触る。
+        _binding?.imageView?.let { Glide.with(this).clear(it) }
         _binding = null
     }
 }

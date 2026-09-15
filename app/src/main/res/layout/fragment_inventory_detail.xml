@@ -39,8 +39,8 @@
             />
 
         <!--
-            在庫画像は今はプレースホルダだが、実画像を読み込む際に ImageView が必要になる。
-            compound drawable では URL から読み込んだ画像を扱えないため、この構成を残す。
+            compound drawable では URL から読み込んだ画像を扱えないため、
+            ラベルと ImageView を並べるこの構成にしている。
         -->
         <LinearLayout
             android:layout_width="match_parent"

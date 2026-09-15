@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 在庫画像ダイアログの背景。背後の画面がうっすら透ける濃さにする。 -->
+    <color name="image_dialog_scrim">#B3424242</color>
+</resources>

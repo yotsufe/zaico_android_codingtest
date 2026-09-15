@@ -27,5 +27,24 @@
         <argument
             android:name="inventoryId"
             app:argType="integer" />
+        <action
+            android:id="@+id/action_inventoryDetail_to_inventoryImage"
+            app:destination="@id/inventoryImageDialog" />
     </fragment>
+
+    <!--
+      DialogFragment を Navigation の destination として登録する。
+      ダイアログの見た目のまま、Safe Args で型安全に引数を渡せる。
+    -->
+    <dialog
+        android:id="@+id/inventoryImageDialog"
+        android:name="jp.co.zaico.codingtest.InventoryImageDialogFragment"
+        tools:layout="@layout/fragment_inventory_image">
+        <argument
+            android:name="imageUrl"
+            app:argType="string" />
+        <argument
+            android:name="title"
+            app:argType="string" />
+    </dialog>
 </navigation>
