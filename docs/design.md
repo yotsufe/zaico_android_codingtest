@@ -48,7 +48,7 @@ CreateInventoryActivity ──┘                              │
 | 判断 | 理由 |
 |---|---|
 | `ZaicoApiEndpoint` が URL 組み立てと認証ヘッダを持つ | 接続先の知識を 1 箇所に集約する。認証方式を変える場合もここだけで済む |
-| `ApiTokenMissingException` を投げる | `Context` を持たないデータ層では文字列リソースを引けないため、事実だけを例外で伝える |
+| `ApiException` の各サブクラスを投げる | `Context` を持たないデータ層では文字列リソースを引けないため、**何が起きたかだけ**を型で伝える。表示文言は UI 層が決める。`when` が網羅的なので、例外を足して文言を忘れるとコンパイルが通らない |
 | `Context.displayMessageOf(Throwable)` で文言に変換する | 例外から表示文言への変換を UI 側の 1 箇所に集約する |
 | company_id の解決を `CompanyIdProvider` に分ける | `ZaicoApi` は `object` なので、保持した company_id がプロセス全体で共有されテストから初期化できない。`@Singleton` のクラスにして Hilt に寿命を任せると、テストは新しいインスタンスを作れる |
 

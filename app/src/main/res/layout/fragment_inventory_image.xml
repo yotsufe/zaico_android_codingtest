@@ -4,20 +4,27 @@
   「上に重なっている」ことが伝わる。
 -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/image_dialog_scrim">
+    android:background="@color/image_dialog_scrim"
+    tools:ignore="Overdraw">
 
     <!--
       拡大・縮小はしないので fitCenter で全体を収める。
       centerCrop だと縦長の画像で端が切れる。
+    -->
+    <!--
+        contentDescription は在庫のタイトルから組み立てるのでコードで設定する。
+        Lint は XML しか見ないので、ここで抑制しないと欠落として報告される。
     -->
     <ImageView
         android:id="@+id/imageView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_margin="16dp"
-        android:scaleType="fitCenter" />
+        android:scaleType="fitCenter"
+        tools:ignore="ContentDescription" />
 
     <ImageButton
         android:id="@+id/closeButton"

@@ -4,6 +4,19 @@
     <string name="inventory_detail_label">在庫詳細</string>
     <string name="error_load_inventories">在庫一覧を取得できませんでした: %1$s</string>
     <string name="error_load_inventory">在庫詳細を取得できませんでした: %1$s</string>
+    <string name="error_response_not_json">レスポンスを JSON として解釈できませんでした</string>
+    <string name="error_response_missing_data">レスポンスに data が含まれていません</string>
+    <string name="error_not_object">%1$sがオブジェクトではありません</string>
+    <string name="error_not_array">%1$sが配列ではありません</string>
+    <string name="error_missing_field">%1$sが含まれていません</string>
+    <string name="error_not_integer">%1$sが整数ではありません</string>
+    <string name="error_out_of_range">%1$sが扱える範囲を超えています</string>
+    <string name="error_no_company">利用可能な会社が見つかりませんでした</string>
+    <string name="json_part_response">レスポンス</string>
+    <!-- JSON のキー名そのものなので訳さない。 -->
+    <string name="json_part_data" translatable="false">data</string>
+    <string name="json_part_inventory">在庫</string>
+    <string name="json_part_company">会社</string>
     <string name="error_api_token_missing">API トークンが設定されていません。local.properties に zaico.apiToken を設定してください。</string>
     <string name="create_inventory_label">在庫データ作成</string>
     <string name="create_inventory_title_hint">タイトル</string>
