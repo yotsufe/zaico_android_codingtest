@@ -5,6 +5,16 @@
 本プロジェクトは株式会社ZAICO（以下弊社）が、弊社に Android エンジニアを希望する方に出す課題のベースプロジェクトです。
 下記の概要を詳しく読んだ上で課題を取り組んでください。
 
+## ドキュメント
+
+- [docs/spec.md](docs/spec.md) — このアプリが今どう動くか
+- [docs/design.md](docs/design.md) — どう作るか
+- [docs/specs/](docs/specs/) — 変更ごとの仕様
+- [CLAUDE.md](CLAUDE.md) — 開発の進め方（SDD + TDD）と規約。
+  **各文書の役割分担もここにまとめてある**
+
+以降の改修は仕様を先に書いてから実装する。
+
 ## アプリ仕様
 
 本アプリは zaico API を利用して、在庫情報を取得・表示と作成をするアプリです。
@@ -16,6 +26,9 @@
 API 仕様は以下の通りです。
 
 [zaico API Document](https://zaicodev.github.io/zaico_api_doc/)
+
+> **本アプリが使うのは公開 API v2 です。** 上記は v1 のドキュメントで内容が異なります。
+> 理由と使用するエンドポイントは [docs/design.md](docs/design.md#api-バージョン) を参照してください。
 
 zaicoのAPIを利用するためzaicoのアカウントを登録し、APIトークンを取得して使用してください。
 
@@ -41,23 +54,10 @@ zaico.apiToken=＜あなたの zaico API トークン＞
 
 ### 使用している API のバージョンについて
 
-本アプリは公開 API v2 を使用しています。
+本アプリは [公開 API v2](https://public-docs.zaico.co.jp/public-api-v2-doc/openapi.html) を使用しています。
 
-在庫データ作成は [公開 API v2 ドキュメント](https://public-docs.zaico.co.jp/public-api-v2-doc/openapi.html)
-の `Inventories_create` に従い、以下を使用しています。
-
-```
-POST /api/v2/orgs/companies/{company_id}/inventories.json
-Content-Type: application/json
-
-{"title": "..."}
-```
-
-`title` のみが必須です（`quantity` / `place` / `unit` などは任意）。
-`company_id`（拠点 ID）はパスに必要なため、`/api/v2/orgs/companies.json` から取得しています。
-
-> ドキュメント上の成功ステータスは `201` ですが、実機では `200` が返りました。
-> 本実装は 2xx を成功として扱い、レスポンス本文の形式に依存しないため、どちらでも動作します。
+**v2 を選んだ理由、エンドポイントの形、`company_id` の扱い、成功ステータスの差異は
+[docs/design.md](docs/design.md#api-バージョン) にまとめてあります。**
 
 ### テストの実行
 
@@ -71,26 +71,25 @@ JVM 上で完結します（実機・API トークン不要）。通信は Ktor 
 
 ### 書式チェック
 
-```bash
-./gradlew ktlintCheck    # 検査
-./gradlew ktlintFormat   # 一括修正
-```
-
-`./gradlew check` からも実行されます。
+書式は ktlint で機械的に揃えます。コマンドの一覧は [CLAUDE.md の「検証」](CLAUDE.md#検証)、
+スタイルを選んだ理由は [docs/design.md](docs/design.md#コードスタイル) を参照してください。
 
 書式を一括整形したコミットは `.git-blame-ignore-revs` に登録してあります。
-`git blame` から除外するには、クローンごとに一度だけ次を実行してください（GitHub 上では自動で適用されます）。
+`git blame` から除外するには、クローンごとに一度だけ次を実行してください
+（GitHub 上では自動で適用されます）。
 
-```bash
+```
 git config blame.ignoreRevsFile .git-blame-ignore-revs
 ```
+
 
 ### 動作確認済の開発環境
 
 - IDE：Android Studio Ladybug Feature Drop | 2024.2.2 Patch 1
 - Kotlin：1.9.24
 - Java：17
-- Gradle：8.8.1
+- AGP：8.8.1
+- Gradle：8.10.2
 - minSdk：28
 - targetSdk：35
 
