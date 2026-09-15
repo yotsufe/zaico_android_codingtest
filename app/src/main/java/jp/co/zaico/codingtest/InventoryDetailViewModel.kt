@@ -18,7 +18,15 @@ sealed interface InventoryDetailUiState {
     data object Loading : InventoryDetailUiState
 
     /** 読み込みに成功した。 */
-    data class Loaded(val inventory: Inventory) : InventoryDetailUiState
+    data class Loaded(val inventory: Inventory) : InventoryDetailUiState {
+
+        /**
+         * 在庫画像を表示できる。false ならプレースホルダを出し、タップにも反応させない。
+         *
+         * 押せそうに見えて何も起きないより、押せないほうが分かりやすい。
+         */
+        val canShowImage: Boolean get() = inventory.imageUrl != null
+    }
 
     /**
      * 読み込みに失敗した。

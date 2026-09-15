@@ -5,6 +5,7 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -33,6 +34,27 @@ class InventoryDetailViewModelTest {
 
         assertEquals(InventoryDetailUiState.Loaded(inventory), viewModel.uiState.value)
         assertEquals(listOf(7), repository.requestedInventoryIds)
+    }
+
+    @Test
+    fun `画像 URL があれば画像を表示できる`() = runTest {
+        val withImage = inventory.copy(imageUrl = "https://example.test/a.png")
+        val viewModel = InventoryDetailViewModel(FakeInventoryRepository(inventory = withImage))
+
+        viewModel.fetchIfNeeded(withImage.id)
+
+        val state = viewModel.uiState.value as InventoryDetailUiState.Loaded
+        assertTrue(state.canShowImage)
+    }
+
+    @Test
+    fun `画像 URL が無ければ画像を表示できない`() = runTest {
+        val viewModel = InventoryDetailViewModel(FakeInventoryRepository(inventory = inventory))
+
+        viewModel.fetchIfNeeded(inventory.id)
+
+        val state = viewModel.uiState.value as InventoryDetailUiState.Loaded
+        assertFalse(state.canShowImage)
     }
 
     @Test

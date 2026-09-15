@@ -9,6 +9,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertThrows
 import org.junit.Test
 
@@ -82,6 +83,47 @@ class ZaicoApiTest {
         }
 
         assertEquals("dataがオブジェクトではありません", error.message)
+    }
+
+    @Test
+    fun `toInventory は item_image の url を写す`() {
+        val json = ZaicoApi.parseDataAsObject("""{"data":{"id":7,"item_image":{"url":"https://example.test/a.png"}}}""")
+
+        assertEquals("https://example.test/a.png", ZaicoApi.toInventory(json).imageUrl)
+    }
+
+    @Test
+    fun `toInventory は item_image の url が null なら画像なしにする`() {
+        val json = ZaicoApi.parseDataAsObject("""{"data":{"id":7,"item_image":{"url":null}}}""")
+
+        assertNull(ZaicoApi.toInventory(json).imageUrl)
+    }
+
+    @Test
+    fun `toInventory は item_image の url が空白だけなら画像なしにする`() {
+        val json = ZaicoApi.parseDataAsObject("""{"data":{"id":7,"item_image":{"url":"   "}}}""")
+
+        assertNull(ZaicoApi.toInventory(json).imageUrl)
+    }
+
+    @Test
+    fun `toInventory は item_image が欠けていても読み取れる`() {
+        val json = ZaicoApi.parseDataAsObject("""{"data":{"id":7,"title":"ねじ"}}""")
+
+        val inventory = ZaicoApi.toInventory(json)
+
+        assertEquals(7, inventory.id)
+        assertNull(inventory.imageUrl)
+    }
+
+    @Test
+    fun `toInventory は item_image がオブジェクトでなくても読み取れる`() {
+        val json = ZaicoApi.parseDataAsObject("""{"data":{"id":7,"title":"ねじ","item_image":"壊れている"}}""")
+
+        val inventory = ZaicoApi.toInventory(json)
+
+        assertEquals("ねじ", inventory.title)
+        assertNull(inventory.imageUrl)
     }
 
     @Test

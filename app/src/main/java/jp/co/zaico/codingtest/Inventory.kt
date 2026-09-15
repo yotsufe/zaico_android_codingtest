@@ -7,6 +7,8 @@ data class Inventory(
     val id: Int,
     val title: String,
     val quantity: String,
+    /** 在庫画像の URL。登録が無ければ null。 */
+    val imageUrl: String? = null,
 )
 
 /**
