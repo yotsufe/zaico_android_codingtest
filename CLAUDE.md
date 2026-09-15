@@ -148,6 +148,14 @@ Kotlin を触っていなければ Gradle 系は不要。該当するのに飛�
 ユーザーに差分を見せるゲートの直前には走らせない。
 
 - **`UP-TO-DATE` を「通った」と報告しない。** 確認したいときは `--rerun-tasks` を付ける
+- **`lintDebug` の成功は「警告ゼロ」を意味しない。** 警告ではビルドが落ちないため、
+  件数を見るなら `app/build/reports/lint-results-debug.xml` を数える。
+  `<issue` の直後は改行なので、`<issue ` （末尾スペース）で grep すると 0 件になる
+
+  ```bash
+  grep -c "<issue$" app/build/reports/lint-results-debug.xml   # 総数
+  grep -o 'id="[^"]*"' app/build/reports/lint-results-debug.xml | sort | uniq -c
+  ```
 - 書式は ktlint が強制する（`intellij_idea`）。手で整えない
 - **検査できないものを「ルール」として増やさない。** 守られたか分からないルールは、
   実質存在しないのと同じ。書くなら、**何が機械で守られ何がそうでないかを明示する**
