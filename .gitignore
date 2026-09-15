@@ -20,3 +20,7 @@ local.properties
 /.claude/hooks/secret-patterns.txt
 /.claude/peer-review/
 /.claude/settings.local.json
+
+# Python の実行で生成される（tools/ のスクリプト）
+__pycache__/
+*.pyc

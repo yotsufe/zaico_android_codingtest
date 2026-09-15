@@ -66,10 +66,14 @@ git checkout main && git pull && git checkout -b <branch>
 
 | 拒否されるもの | 対応する手順 |
 |---|---|
-| `--force` / `-f` / `--force-with-lease` つきの `git push` | §7 |
+| `--force` / `-f` / `--force-with-lease` つき、または refspec が `+` で始まる `git push` | §7 |
 | **peer-review を通していないブランチの `git push` / `gh pr create`** | **§2** |
 | detached HEAD からの `git push`（ブランチ名でマーカーを引けないため） | **§2** |
-| 秘密情報を含むコミットの `git push` | §4-1 / §7-1 |
+| detached HEAD からの `gh pr create`（同上） | **§2** |
+| 秘密情報を含むコミットの `git push`、`gh pr create` / `gh pr edit` の本文 | §4-1 / §7-1 |
+
+**`git push --delete`（ブランチ削除）はマーカーを要求しない。** レビュー対象ではないため。
+ただし削除そのものは `CLAUDE.md` が「人間が引く」と定めているので、自分で実行しない。
 
 `main` への直接コミットは hook では止めない。ブランチ先行は §3 の手順で扱う
 （`main` 上にいると気づいたら §5 でユーザーに確認する）。
@@ -88,7 +92,6 @@ hook に拒否されたら、**回避しようとせず止まってユーザー�
 
 - `<scratchpad>` — セッションのスクラッチパッドディレクトリ（システムプロンプトに示されるもの）
 - `<branch>` — これから作るブランチ名
-- `<package>` — `app/build.gradle.kts` の `applicationId`
 
 ---
 
@@ -207,6 +210,10 @@ checkout が失敗した場合（`main` と衝突する変更がある）は、�
 - この変更で扱った秘密情報の**実値**（`local.properties` の値、リソースに書かれたトークンなど）
 - 汎用パターン: `Bearer [A-Za-z0-9]`, `api[_-]?key`, `secret`, `password`, `token\s*=`, `-----BEGIN`
 
+**`grep` には必ず `-i` を付ける。** hook 側（`git-guard.sh`）は大小文字を無視するのに、
+こちらが `-E` だけだと `API_KEY=...` を見逃す。**手順書のほうが hook より弱いと、
+「§4-1 で見つけるのが本来」という前提が崩れる。**
+
 実値を毎回書くのが面倒なら `.claude/hooks/secret-patterns.txt` に 1 行 1 正規表現で
 登録しておく。hook がそれも使って検査する（このファイルは `.gitignore` 対象）。
 
@@ -214,14 +221,14 @@ checkout が失敗した場合（`main` と衝突する変更がある）は、�
 PAT='<上で決めた正規表現>'
 
 # 作業ツリー（追跡ファイル）
-git grep -l -E "$PAT" --
+git grep -l -iE "$PAT" --
 
 # 未追跡ファイル
-git ls-files --others --exclude-standard -z | xargs -0 /usr/bin/grep -lE "$PAT"
+git ls-files --others --exclude-standard -z | xargs -0 /usr/bin/grep -liE "$PAT"
 
 # 既存のコミット（再開時。rev-list が空だと git grep は作業ツリー検索に化けるのでガードする）
 REVS=$(git rev-list main..HEAD)
-if [ -n "$REVS" ]; then git grep -l -E "$PAT" $REVS -- ; fi
+if [ -n "$REVS" ]; then git grep -l -iE "$PAT" $REVS -- ; fi
 ```
 
 コミット後にもう一度走らせる（§7）。PR 本文もそのときスキャンする。
@@ -233,18 +240,29 @@ if [ -n "$REVS" ]; then git grep -l -E "$PAT" $REVS -- ; fi
 `~/.claude/shell-snapshots/` のシェル関数で上書きされているため。`/usr/bin/grep` は尊重しない）。
 無視ファイルを見落とすので、追跡対象の検査は必ず git ベースで行う。
 
-### 4-2. ビルド・テスト・Lint
+### 4-2. ビルド・テスト・Lint・実機確認
 
-```bash
-./gradlew :app:assembleDebug          # BUILD SUCCESSFUL を目視確認
-./gradlew :app:testDebugUnitTest      # app/src/test に実テストがある場合
-./gradlew :app:lintDebug              # アクセシビリティ・多言語対応・API 互換はここで見る
-```
+**[`CLAUDE.md` の「検証」](../../../CLAUDE.md#検証) に挙がっているコマンドを、その変更に該当するものすべて通す。**
+一覧をここに写さない（増減したときに 2 か所を直すことになる）。
+
+`BUILD SUCCESSFUL` を文字列で目視確認すること。
+
+**UI に触る変更は、ここで実機確認も済ませる。**
+自動テストで守れない部分があり、[`CLAUDE.md` の「実機確認」](../../../CLAUDE.md#実機確認) が
+唯一の検証手段になる。変更 spec に「実機で守る」の項目があるなら、すべて消化して結果を記録する。
+**peer-review の指摘で UI を直したら、確認はやり直す。**
 
 Lint はアクセシビリティや `contentDescription` 欠落、ハードコード文字列を
 機械的かつ高精度に検出する。レビュー観点として人手やエージェントを当てるより確実。
 
-### 4-3. 変更内容の把握
+### 4-3. PR 本文を書く
+
+**ここで `<scratchpad>/pr_body.md` を書く。** §7-1 がこのファイルをスキャンし、
+§7-2 が `--body-file` で使う。構成は末尾の「PR 本文の構成」に従う。
+
+§5 でユーザーに見せる材料とほぼ同じなので、ここで書いておくと二度手間にならない。
+
+### 4-4. 変更内容の把握
 
 ユーザーに提示するための材料を集める。
 
@@ -271,7 +289,9 @@ git ls-files --others --exclude-standard   # 未追跡（新規ファイル）
   **実行できなかった観点があればその旨**（観点が落ちたままゲートを通さない）
 - **変更内容**。何をどう変えたか。ファイル一覧だけでなく、判断を伴った箇所は理由も
 - 差分統計（変更ファイル数、増減行数）
-- 検証結果（§4-1〜4-3）
+- 検証結果（§4-1〜4-4）
+- **peer-review の後に加えた変更**（あれば）。マーカーは「レビューを通した」ことしか
+  意味しないので、レビュー後に何を変えたかは自分から言う
 - **これから作るコミットの分割案**（何を何コミットに分け、なぜそう分けるか）
 - PR のベースブランチ（通常 `main`）と Draft かどうか
 - **§3 で異常を検出していればその内容**（`main` 上で作業している、`main` が遅れている、
@@ -289,6 +309,16 @@ git ls-files --others --exclude-standard   # 未追跡（新規ファイル）
 ## 6. コミットを分割する
 
 §3 がケース2 だった場合は、まずここでブランチを切る（`git checkout -b <branch>`）。
+
+**切った直後に peer-review のマーカーを新しいブランチ名へ移す。**
+`main` という名前のままだと §7-2 の `git push` が hook に拒否される。
+
+```bash
+# 移動元は「切り替える前にいたブランチ」。@{-1} で引ける。
+FROM=$(git rev-parse --abbrev-ref @{-1} | tr '/' '~')
+TO=$(git symbolic-ref -q --short HEAD | tr '/' '~')
+[ -f ".claude/peer-review/$FROM" ] && mv ".claude/peer-review/$FROM" ".claude/peer-review/$TO"
+```
 
 ### 方針
 
@@ -308,8 +338,11 @@ git ls-files --others --exclude-standard   # 未追跡（新規ファイル）
 ```bash
 # 1. 最終状態を一時コミットにして退避し、すぐコミットだけ取り消す
 #    （タグが指すのでオブジェクトは残る。作業ツリーは最終状態のまま）
+#    先に古いタグを消す。残っていると commit が失敗しても rev-parse が成功し、
+#    **退避できていないのに次へ進んで、古いツリーで上書きする**。
+git tag -d wip/final 2>/dev/null
 git add -A && git commit -q -m "wip: 最終状態" && git tag -f wip/final && git reset -q --mixed HEAD~1
-git rev-parse --short wip/final         # 退避できたことを確認
+git rev-parse --short wip/final         # ここで失敗したら退避できていない。中断する
 
 # 2. 中間状態を書く → ビルド確認 → コミット
 ./gradlew :app:assembleDebug            # BUILD SUCCESSFUL を目視確認
@@ -389,11 +422,11 @@ REVS=$(git rev-list main..HEAD)
 if [ -z "$REVS" ]; then
   echo "対象コミットなし。ブランチの分岐を見直すこと"
 else
-  git grep -l -E "$PAT" $REVS -- ; echo "  (出力なし = 検出なし)"
+  git grep -l -iE "$PAT" $REVS -- ; echo "  (出力なし = 検出なし)"
 fi
 
 # PR 本文（ログやレスポンスを貼るため混入しやすい）
-/usr/bin/grep -nE "$PAT" <scratchpad>/pr_body.md
+/usr/bin/grep -niE "$PAT" <scratchpad>/pr_body.md
 
 git status --short                    # クリーンであること
 ./gradlew :app:assembleDebug          # 最終状態でビルドが通ること
@@ -485,17 +518,3 @@ git diff --stat main..HEAD
 ## 注意
 
 - **自分の変更と無関係なファイルを巻き込まない。** 差分がノイズで埋まるとレビューが機能しなくなる
-- 実機での確認が必要な変更は、`adb` で E2E を通してから PR にする
-
-  ```bash
-  adb devices                   # 先に接続確認。切断されているとコマンドが長時間ハングする
-  adb logcat -c -b crash
-  adb install -r app/build/outputs/apk/debug/app-debug.apk
-  adb shell am start -n <package>/.MainActivity
-  adb logcat -d -b crash        # 空であること
-  adb shell screencap -p /sdcard/s.png && adb pull /sdcard/s.png <scratchpad>/
-  ```
-
-  `sleep` はこの環境で使えない
-- **画面が表示されたことの確認は、プロセスの生存ではなくスクリーンショットで行う。**
-  端末がロック画面だと Activity が resume していても何も見えない

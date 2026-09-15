@@ -3,21 +3,29 @@
 zaico Android コーディングテストの設計方針を記録する。
 アーキテクチャ・テスト戦略・API の扱いなど、**変更頻度の低い判断**を対象とする。
 
-> **実装状況・既知の制約・残タスクはこの文書に書かない。** それらは PR の本文で管理する。
+> **この文書が答えるのは「どう作るか」だけ。**
+> 振る舞いは [spec.md](spec.md)、変更の経緯は [specs/](specs/) が持つ。
+> 役割分担は [CLAUDE.md](../CLAUDE.md#ドキュメントの役割分担) にまとめてある。
+>
+> **実装状況・既知の制約・残タスクはこの文書に書かない。**
 > 二重に持つと片方の更新が漏れ、「対応済みなのに制約として残っている」といった
 > 事実と逆の記述が生まれるため。
 
 ## 構成
 
 ```
-CreateInventoryActivity ──→ CreateInventoryViewModel ──→ InventoryRepository (interface)
-                                          │
-                             ZaicoInventoryRepository (実装)
-                                          │
-                          ┌───────────────┴───────────────┐
-                    CompanyIdProvider                      │
-                          └───────────────┬───────────────┘
-                                      ZaicoApi
+InventoriesFragment ──────┐
+InventoryDetailFragment ──┼─→ 各 ViewModel ──→ InventoryRepository (interface)
+CreateInventoryActivity ──┘                              │
+                                            ZaicoInventoryRepository (実装)
+                                                         │
+                                         ┌───────────────┴───────────────┐
+                                   CompanyIdProvider                      │
+                                         └───────────────┬───────────────┘
+                                                     ZaicoApi
+                                                         │
+                                                  ZaicoApiEndpoint
+                                            （接続先・認証ヘッダ・BuildConfig）
 ```
 
 ### テストの継ぎ目を 2 段置く
@@ -72,6 +80,7 @@ UI がするのは、状態を受け取って描画することと、入力を�
 
 | 対象 | 手段 | 検証内容 |
 |---|---|---|
+| `ZaicoApiEndpoint` | なし（純関数） | URL の連結、認証ヘッダの組み立て、トークンの有無 |
 | `ZaicoApi` | MockEngine | URL 組み立て、認証ヘッダ、ステータス判定、エラーメッセージ抽出、JSON 解析 |
 | `CompanyIdProvider` | MockEngine | company_id の解決、保持して 2 回目以降は叩かないこと、異常系の例外 |
 | `ZaicoInventoryRepository` | MockEngine | 一覧・詳細・作成のリクエストの形（メソッド・パス・ボディ）、読み飛ばし、異常系の例外 |
@@ -126,13 +135,21 @@ POST /api/v2/orgs/companies/{company_id}/inventories.json
 `createInventory` の戻り値は `Unit` とし、**成功判定を 2xx だけで行ってレスポンス本文の形に依存させていない**。
 作成した ID を使う要件がないためで、これにより次の差異を吸収できている。
 
-- ドキュメントの成功ステータスは `201` だが、実機では `200` が返る
+- ドキュメントの成功ステータスは `201` だが、実機では `200` が返った（2026-09 時点）
 - レスポンスは `{"data": {...}}` 形式だが、作成直後は `quantity` が `null` になる
 
 エラーは RFC 7807 Problem Details 形式（`title` / `status` / `detail`）で返るため、
 `detail` を優先し、無ければ `title` を表示する。
 
 リクエストの形（メソッド・パス・ボディ）はテストで文字列として固定してある。
+
+## CI を置かない
+
+検証はローカルで完結する（[CLAUDE.md の検証](../CLAUDE.md#検証)）。
+コミットするのが 1 人で、同じコマンドが手元で全部走る状況では、
+CI は**同じ検査をもう一度、遅れて走らせる**だけになる。
+
+複数人が並行して触るようになったら入れる。それまでは置かない。
 
 ## コードスタイル
 
