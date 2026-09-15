@@ -13,6 +13,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertThrows
 import org.junit.Test
 import java.io.IOException
@@ -195,6 +196,17 @@ class ZaicoInventoryRepositoryTest {
 
         assertEquals(listOf(Inventory(1, "ねじ", "")), inventories.items)
         assertEquals(2, inventories.skipped)
+    }
+
+    @Test
+    fun `getInventories は画像の形が壊れていても在庫を読み飛ばさない`() = runTest {
+        val engine = engineOf { respond("""{"data":[{"id":1,"title":"ねじ","item_image":"壊れている"}]}""") }
+
+        val inventories = repositoryOf(engine).getInventories()
+
+        assertEquals(1, inventories.items.size)
+        assertEquals(0, inventories.skipped)
+        assertNull(inventories.items.first().imageUrl)
     }
 
     @Test

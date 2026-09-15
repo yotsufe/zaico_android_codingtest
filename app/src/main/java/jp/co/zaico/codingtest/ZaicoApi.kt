@@ -121,6 +121,9 @@ object ZaicoApi {
             id = json.requireInt("id"),
             title = json.stringOrEmpty("title"),
             quantity = json.stringOrEmpty("quantity"),
+            // 形が違っても例外にしない。例外にすると、画像の不備で在庫そのものが
+            // 一覧から読み飛ばされてしまう。
+            imageUrl = (json["item_image"] as? JsonObject)?.nonBlank("url"),
         )
     }
 
