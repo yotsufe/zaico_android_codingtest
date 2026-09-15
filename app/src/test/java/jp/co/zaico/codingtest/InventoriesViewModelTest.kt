@@ -83,7 +83,7 @@ class InventoriesViewModelTest {
     @Test
     fun `読み込みに失敗したら例外を持つ Failed になる`() = runTest {
         val viewModel = InventoriesViewModel(
-            FakeInventoryRepository(failure = ApiException("トークンが無効です。")),
+            FakeInventoryRepository(failure = ApiException.ErrorResponse("トークンが無効です。")),
         )
 
         viewModel.fetch()
@@ -162,7 +162,7 @@ class InventoriesViewModelTest {
 
     @Test
     fun `fetchIfNeeded は失敗したあとなら読み込み直す`() = runTest {
-        val repository = FakeInventoryRepository(failure = ApiException("圏外です。"))
+        val repository = FakeInventoryRepository(failure = ApiException.ErrorResponse("圏外です。"))
         val viewModel = InventoriesViewModel(repository)
 
         viewModel.fetchIfNeeded()
@@ -174,7 +174,7 @@ class InventoriesViewModelTest {
     @Test
     fun `onErrorShown を呼ぶと同じエラーを二度通知しない`() = runTest {
         val viewModel = InventoriesViewModel(
-            FakeInventoryRepository(failure = ApiException("圏外です。")),
+            FakeInventoryRepository(failure = ApiException.ErrorResponse("圏外です。")),
         )
 
         viewModel.fetch()

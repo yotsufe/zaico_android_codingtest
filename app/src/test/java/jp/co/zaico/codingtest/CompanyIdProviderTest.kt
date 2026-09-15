@@ -149,8 +149,7 @@ class CompanyIdProviderTest {
             errorOf { CompanyIdProvider(endpoint).resolve(client) }
         }
 
-        assertTrue(error is ApiException)
-        assertEquals("利用可能な会社が見つかりませんでした", error.message)
+        assertTrue(error is ApiException.NoCompany)
     }
 
     @Test
@@ -171,11 +170,13 @@ class CompanyIdProviderTest {
             }
 
             assertTrue("$body: $error", error is ApiException)
+            // 会社を指していることまで固定する。取り違えても他のテストでは気づけない。
+            if (error is ApiException.NotObject) assertEquals(JsonPart.COMPANY, error.part)
         }
     }
 
     @Test
-    fun `トークンが空ならリクエストを送らずに ApiTokenMissingException を投げる`() = runTest {
+    fun `トークンが空ならリクエストを送らずに TokenMissing を投げる`() = runTest {
         val engine = MockEngine { respond("") }
         val tokenless = endpoint.copy(token = "")
 
@@ -183,7 +184,7 @@ class CompanyIdProviderTest {
             errorOf { CompanyIdProvider(tokenless).resolve(client) }
         }
 
-        assertTrue(error is ApiTokenMissingException)
+        assertTrue(error is ApiException.TokenMissing)
         assertEquals(0, engine.requestHistory.size)
     }
 

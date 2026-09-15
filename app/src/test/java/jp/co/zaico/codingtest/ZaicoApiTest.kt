@@ -11,6 +11,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertThrows
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
@@ -57,14 +58,14 @@ class ZaicoApiTest {
     fun `JSON として解釈できない本文なら ApiException を投げる`() {
         val error = assertThrows(ApiException::class.java) { ZaicoApi.parseDataAsArray("not json") }
 
-        assertEquals("レスポンスを JSON として解釈できませんでした", error.message)
+        assertTrue(error is ApiException.NotJson)
     }
 
     @Test
     fun `本文がオブジェクトでなければ ApiException を投げる`() {
         val error = assertThrows(ApiException::class.java) { ZaicoApi.parseDataAsArray("[1,2,3]") }
 
-        assertEquals("レスポンスがオブジェクトではありません", error.message)
+        assertEquals(JsonPart.RESPONSE, (error as ApiException.NotObject).part)
     }
 
     @Test
@@ -73,7 +74,7 @@ class ZaicoApiTest {
             ZaicoApi.parseDataAsArray("""{"data":{"id":1}}""")
         }
 
-        assertEquals("dataが配列ではありません", error.message)
+        assertEquals(JsonPart.DATA, (error as ApiException.NotArray).part)
     }
 
     @Test
@@ -82,7 +83,7 @@ class ZaicoApiTest {
             ZaicoApi.parseDataAsObject("""{"data":[1,2]}""")
         }
 
-        assertEquals("dataがオブジェクトではありません", error.message)
+        assertEquals(JsonPart.DATA, (error as ApiException.NotObject).part)
     }
 
     @Test
@@ -132,7 +133,7 @@ class ZaicoApiTest {
 
         val error = assertThrows(ApiException::class.java) { ZaicoApi.toInventory(json) }
 
-        assertEquals("idが含まれていません", error.message)
+        assertEquals("id", (error as ApiException.MissingField).key)
     }
 
     @Test
@@ -141,7 +142,7 @@ class ZaicoApiTest {
 
         val error = assertThrows(ApiException::class.java) { ZaicoApi.toInventory(json) }
 
-        assertEquals("idが整数ではありません", error.message)
+        assertEquals("id", (error as ApiException.NotInteger).key)
     }
 
     @Test
@@ -150,7 +151,7 @@ class ZaicoApiTest {
 
         val error = assertThrows(ApiException::class.java) { ZaicoApi.toInventory(element) }
 
-        assertEquals("在庫がオブジェクトではありません", error.message)
+        assertEquals(JsonPart.INVENTORY, (error as ApiException.NotObject).part)
     }
 
     @Test
@@ -166,7 +167,7 @@ class ZaicoApiTest {
             ZaicoApi.parseDataAsArray("""{"message":"something went wrong"}""")
         }
 
-        assertEquals("レスポンスに data が含まれていません", error.message)
+        assertTrue(error is ApiException.MissingData)
     }
 
     @Test
@@ -175,7 +176,7 @@ class ZaicoApiTest {
 
         val error = assertThrows(ApiException::class.java) { ZaicoApi.toInventory(json) }
 
-        assertEquals("idが扱える範囲を超えています", error.message)
+        assertEquals("id", (error as ApiException.OutOfRange).key)
     }
 
     @Test
@@ -253,10 +254,10 @@ class ZaicoApiTest {
     }
 
     @Test
-    fun `getRawBody はトークンが空ならリクエストを送らずに ApiTokenMissingException を投げる`() {
+    fun `getRawBody はトークンが空ならリクエストを送らずに TokenMissing を投げる`() {
         val engine = MockEngine { respond("") }
 
-        assertThrows(ApiTokenMissingException::class.java) {
+        assertThrows(ApiException.TokenMissing::class.java) {
             runBlocking {
                 ZaicoApi.getRawBody(clientOf(engine), endpoint.copy(token = ""), "/api/v2/x.json")
             }

@@ -23,14 +23,35 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
 
 /** API がエラーステータスを返したときに投げる例外。 */
-open class ApiException(message: String) : Exception(message)
+open class ApiException(message: String) : Exception(message) {
 
-/**
- * API トークンが設定されていないときに投げる例外。
- *
- * 表示する文言は文字列リソースを持つ UI 層が [displayMessageOf] で決める。
- */
-class ApiTokenMissingException : ApiException("API token is not configured")
+    class TokenMissing : ApiException("API token is not configured")
+
+    /** [reason] は API 自身が返した文言。こちらで作らない。 */
+    class ErrorResponse(val reason: String) : ApiException(reason)
+
+    class NotJson : ApiException("response is not JSON")
+
+    class MissingData : ApiException("response has no data")
+
+    class NotObject(val part: JsonPart) : ApiException("$part is not an object")
+
+    class NotArray(val part: JsonPart) : ApiException("$part is not an array")
+
+    class MissingField(val key: String) : ApiException("$key is missing")
+
+    class NotInteger(val key: String) : ApiException("$key is not an integer")
+
+    class OutOfRange(val key: String) : ApiException("$key is out of range")
+
+    class NoCompany : ApiException("no company available")
+}
+
+/** レスポンスのどの部分かを表す。表示名は UI 層が持つ。 */
+enum class JsonPart { RESPONSE, DATA, INVENTORY, COMPANY }
+
+/** 互換のための別名。次のコミットで [ApiException.TokenMissing] に寄せる。 */
+typealias ApiTokenMissingException = ApiException.TokenMissing
 
 /**
  * zaico 公開 API v2 へのアクセスをまとめたヘルパー。
